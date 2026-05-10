@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Search | Four Sails Real Estate</title>
+<meta name="description" content="Search homes and properties in Southwest Florida with Four Sails Real Estate.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--navy:#1D3F60;--navy-light:#2a5580;--gold:#E3DEC3;--gold-light:#D9CBBF;--gray-50:#F8F7F3;--gray-100:#f3f4f6;--gray-200:#e5e7eb;--gray-300:#d1d5db;--gray-400:#9ca3af;--gray-500:#6b7280;--gray-600:#4b5563;--gray-700:#374151;--gray-800:#1f2937;--white:#fff;--shadow:0 1px 3px rgba(0,0,0,.12),0 1px 2px rgba(0,0,0,.08);--shadow-lg:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);--radius:8px}
+body{font-family:'Lato',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--gray-50);color:var(--gray-800);line-height:1.5}
+a{color:var(--navy);text-decoration:none}
+.header{background:var(--navy);color:var(--white);padding:16px 24px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-lg)}
+.logo-icon{width:36px;height:36px;flex-shrink:0}
+.logo-icon svg{width:100%;height:100%}
+.header-text h1{font-size:1.25rem;font-weight:700;letter-spacing:.5px}
+.header-text p{font-size:.75rem;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;font-weight:500}
+.search-panel{background:var(--white);border-bottom:1px solid var(--gray-200);padding:16px 24px;box-shadow:var(--shadow)}
+.search-inner{max-width:1400px;margin:0 auto}
+.filter-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap}
+.filter-row:last-child{margin-bottom:0}
+.filter-label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-500);font-weight:600;min-width:75px;flex-shrink:0}
+.pill{padding:5px 14px;border-radius:20px;font-size:.8rem;cursor:pointer;border:1px solid var(--gray-300);background:var(--white);color:var(--gray-600);transition:all .15s;user-select:none;white-space:nowrap}
+.pill:hover{border-color:var(--navy);color:var(--navy)}
+.pill.active{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.dropdowns-row{display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+.search-field{display:flex;flex-direction:column;gap:3px}
+.search-field label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-500);font-weight:600}
+.search-field select,.search-field input{padding:7px 10px;border:1px solid var(--gray-300);border-radius:var(--radius);font-size:.85rem;background:var(--white);color:var(--gray-800);appearance:auto}
+.search-field select:focus,.search-field input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 2px rgba(26,54,93,.15)}
+.search-actions{display:flex;align-items:end;gap:8px;margin-top:12px}
+.btn-search{background:var(--navy);color:var(--white);border:none;padding:8px 24px;border-radius:var(--radius);font-size:.875rem;font-weight:600;cursor:pointer;transition:background .15s}
+.btn-search:hover{background:var(--navy-light)}
+.btn-clear{background:none;border:1px solid var(--gray-300);padding:8px 14px;border-radius:var(--radius);font-size:.8rem;color:var(--gray-500);cursor:pointer}
+.btn-clear:hover{border-color:var(--gray-400);color:var(--gray-700)}
+.results-header{max-width:1400px;margin:16px auto 8px;padding:0 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.results-count{font-size:.9rem;color:var(--gray-600)}.results-count strong{color:var(--gray-800)}
+.sync-time{font-size:.7rem;color:var(--gray-400)}
+.results-container{max-width:1400px;margin:0 auto;padding:0 24px 24px}
+.results-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.card{background:var(--white);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);cursor:pointer;transition:box-shadow .2s,transform .15s}
+.card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px)}
+.card-photo{width:100%;aspect-ratio:4/3;background:var(--gray-200);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.card-photo img{width:100%;height:100%;object-fit:cover}
+.card-photo .placeholder-icon{color:var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;font-size:.75rem;background:linear-gradient(135deg,var(--navy),var(--navy-light));width:100%;height:100%;padding:20px}
+.card-photo .placeholder-icon svg{width:40px;height:40px;opacity:.8}
+.card-photo .placeholder-icon .coming-soon{font-size:.8rem;font-weight:400;letter-spacing:2px;text-transform:uppercase;color:var(--gold);opacity:.9;font-family:'Marcellus',Georgia,serif}
+.card-photo .placeholder-icon .brand-name{font-size:.65rem;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.5);margin-top:2px}
+.card-status{position:absolute;top:10px;left:10px;padding:3px 10px;border-radius:4px;font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.status-Active{background:rgba(16,185,129,.9);color:#fff}
+.status-Pending{background:rgba(245,158,11,.9);color:#fff}
+.status-Closed{background:rgba(107,114,128,.9);color:#fff}
+.card-photos-count{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.6);color:#fff;padding:2px 8px;border-radius:4px;font-size:.7rem}
+.card-body{padding:14px 16px}
+.card-price{font-size:1.4rem;font-weight:700;color:var(--navy);font-family:'Marcellus',Georgia,serif}
+.card-address{font-size:.9rem;color:var(--gray-700);margin:4px 0}
+.card-details{display:flex;gap:12px;font-size:.8rem;color:var(--gray-500);margin:8px 0;flex-wrap:wrap}
+.card-details span{display:flex;align-items:center;gap:3px;white-space:nowrap}
+.card-meta{display:flex;justify-content:space-between;align-items:center;margin-top:8px;padding-top:8px;border-top:1px solid var(--gray-100)}
+.card-office{font-size:.7rem;color:var(--gray-400);max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-dom{font-size:.7rem;color:var(--gray-400)}
+.card-tags{display:flex;gap:4px;margin-top:6px}
+.tag{padding:2px 6px;border-radius:3px;font-size:.65rem;font-weight:600;text-transform:uppercase}
+.tag-waterfront{background:#dbeafe;color:#1e40af}
+.tag-pool{background:#d1fae5;color:#065f46}
+.loading{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px;gap:12px;color:var(--gray-500)}
+.spinner{width:36px;height:36px;border:3px solid var(--gray-200);border-top-color:var(--navy);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.no-results{text-align:center;padding:80px 24px;color:var(--gray-500)}
+.no-results h3{font-size:1.1rem;color:var(--gray-700);margin-bottom:8px}
+.pagination{display:flex;justify-content:center;align-items:center;gap:6px;padding:24px;flex-wrap:wrap}
+.pagination button{padding:8px 14px;border:1px solid var(--gray-300);background:var(--white);border-radius:var(--radius);font-size:.85rem;cursor:pointer;transition:all .15s}
+.pagination button:hover:not(:disabled){border-color:var(--navy);color:var(--navy)}
+.pagination button.active{background:var(--navy);color:var(--white);border-color:var(--navy)}
+.pagination button:disabled{opacity:.4;cursor:not-allowed}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto}
+.modal-overlay.open{display:flex}
+.modal{background:var(--white);border-radius:12px;max-width:900px;width:100%;max-height:calc(100vh - 40px);overflow-y:auto;box-shadow:0 25px 50px -12px rgba(0,0,0,.25)}
+.modal-close{position:sticky;top:0;z-index:10;display:flex;justify-content:flex-end;padding:12px 16px;background:linear-gradient(var(--white),rgba(255,255,255,.9))}
+.modal-close button{width:36px;height:36px;border-radius:50%;border:none;background:var(--gray-100);cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;color:var(--gray-600)}
+.modal-close button:hover{background:var(--gray-200)}
+.modal-gallery{width:100%;aspect-ratio:4/3;background:var(--gray-200);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.modal-gallery img{width:100%;height:100%;object-fit:cover}
+.modal-gallery .gallery-nav{position:absolute;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:none;background:rgba(255,255,255,.9);cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow)}
+.gallery-prev{left:10px}.gallery-next{right:10px}
+.gallery-counter{position:absolute;bottom:10px;right:10px;background:rgba(0,0,0,.6);color:#fff;padding:3px 10px;border-radius:4px;font-size:.75rem}
+.modal-body{padding:24px}
+.modal-price{font-size:2rem;font-weight:700;color:var(--navy);font-family:'Marcellus',Georgia,serif}
+.modal-status{display:inline-block;padding:3px 10px;border-radius:4px;font-size:.75rem;font-weight:700;text-transform:uppercase;margin-left:10px;vertical-align:middle}
+.modal-address{font-size:1.1rem;color:var(--gray-700);margin:8px 0}
+.modal-mls{font-size:.8rem;color:var(--gray-400);margin-bottom:16px}
+.modal-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:12px;padding:16px;background:var(--gray-50);border-radius:var(--radius);margin:16px 0}
+.modal-stat{text-align:center}
+.modal-stat .val{font-size:1.2rem;font-weight:700;color:var(--navy)}
+.modal-stat .lbl{font-size:.7rem;color:var(--gray-500);text-transform:uppercase}
+.modal-section{margin:20px 0}
+.modal-section h3{font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;color:var(--gold);margin-bottom:8px;font-weight:700}
+.modal-section p{font-size:.9rem;color:var(--gray-600);line-height:1.7}
+.modal-features{display:flex;flex-wrap:wrap;gap:6px}
+.modal-features .feat{padding:4px 10px;background:var(--gray-100);border-radius:4px;font-size:.8rem;color:var(--gray-600)}
+.modal-cta{padding:20px;background:linear-gradient(135deg,var(--navy),var(--navy-light));border-radius:var(--radius);color:var(--white);text-align:center}
+.cta-text{font-size:.95rem;margin-bottom:14px;opacity:.9}
+.cta-buttons{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.cta-btn{display:inline-flex;align-items:center;gap:6px;padding:10px 20px;border-radius:var(--radius);font-size:.9rem;font-weight:600;text-decoration:none;transition:all .15s}
+.cta-phone{background:var(--gold);color:var(--navy);font-family:'Marcellus',Georgia,serif;letter-spacing:1px}.cta-phone:hover{background:var(--gold-light)}
+.cta-email{background:rgba(255,255,255,.15);color:var(--white);border:1px solid rgba(255,255,255,.3)}.cta-email:hover{background:rgba(255,255,255,.25)}
+.footer{background:var(--navy);color:var(--gray-400);padding:24px;font-size:.75rem;line-height:1.8;text-align:center;margin-top:40px;font-family:'Lato',sans-serif}
+.footer a{color:var(--gold)}
+.footer .disclaimer{max-width:900px;margin:0 auto;font-size:.7rem;line-height:1.6;opacity:.8}
+.footer .copyright{margin-top:12px}
+@media(max-width:640px){
+.filter-row{gap:5px}.filter-label{min-width:auto;width:100%;margin-bottom:2px}
+.pill{padding:4px 10px;font-size:.75rem}
+.dropdowns-row{gap:8px}
+.search-field select,.search-field input{padding:6px 8px;font-size:.8rem}
+.results-grid{grid-template-columns:1fr}
+.modal-stats{grid-template-columns:repeat(3,1fr)}
+.header{padding:12px 16px}.search-panel{padding:12px 16px}
+.results-container{padding:0 12px 24px}.results-header{padding:0 12px}
+}
+@media(max-width:400px){.dropdowns-row{flex-direction:column;width:100%}.search-field{width:100%}}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Marcellus&display=swap" rel="stylesheet">
+</head>
+<body>
+<header class="header">
+<div class="logo-icon"><img src="https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png" alt="Four Sails Real Estate" style="width:40px;height:auto;filter:brightness(0) invert(1)"></div>
+<div class="header-text"><h1 style="font-family:'Marcellus',Georgia,serif;font-size:1.25rem;font-weight:400;letter-spacing:2px">FOUR SAILS REAL ESTATE</h1><p style="font-size:.65rem;color:var(--gold);text-transform:uppercase;letter-spacing:3px;font-weight:300">Property Search</p></div>
+</header>
+<div class="search-panel"><div class="search-inner">
+<div class="filter-row">
+<span class="filter-label">County</span>
+<span class="pill active" data-group="county" data-value="Sarasota">Sarasota</span>
+<span class="pill active" data-group="county" data-value="Charlotte">Charlotte</span>
+<span class="pill active" data-group="county" data-value="Lee">Lee</span>
+<span class="pill" data-group="county" data-value="Collier">Collier</span>
+<span class="pill" data-group="county" data-value="Manatee">Manatee</span>
+<span class="pill" data-group="county" data-value="Pinellas">Pinellas</span>
+<span class="pill" data-group="county" data-value="Hillsborough">Hillsborough</span>
+<span class="pill" data-group="county" data-value="ALL">All Counties</span>
+</div>
+<div class="filter-row">
+<span class="filter-label">Type</span>
+<span class="pill active" data-group="subtype" data-value="Single Family Residence">Single Family</span>
+<span class="pill" data-group="subtype" data-value="Condominium">Condo</span>
+<span class="pill" data-group="subtype" data-value="Townhouse">Townhouse</span>
+<span class="pill" data-group="subtype" data-value="Villa">Villa</span>
+<span class="pill" data-group="subtype" data-value="Manufactured Home,Mobile Home,Manufactured Home - Post 1977,Mobile Home - Pre 1976">Manufactured</span>
+<span class="pill" data-group="subtype" data-value="Farm">Farm</span>
+</div>
+<div class="filter-row">
+<span class="filter-label">Waterfront</span>
+<span class="pill" data-group="waterfront" data-value="gulf">Gulf / Ocean</span>
+<span class="pill" data-group="waterfront" data-value="bay">Bay / Harbor</span>
+<span class="pill" data-group="waterfront" data-value="canal">Canal</span>
+<span class="pill" data-group="waterfront" data-value="lake">Lake / Pond</span>
+<span class="pill" data-group="waterfront" data-value="river">River / Creek</span>
+<span class="pill" data-group="waterfront" data-value="beach">Beach</span>
+<span class="pill" data-group="waterfront" data-value="ALL">All Waterfront</span>
+</div>
+<div class="filter-row">
+<span class="filter-label">Features</span>
+<span class="pill" data-group="feature" data-value="pool">Pool</span>
+</div>
+<div class="dropdowns-row">
+<div class="search-field"><label>City</label><input type="text" id="fCity" placeholder="Any city"></div>
+<div class="search-field"><label>ZIP</label><input type="text" id="fZip" placeholder="ZIP" maxlength="10" style="width:80px"></div>
+<div class="search-field"><label>Min Price</label><select id="fMinPrice"><option value="">Any</option><option value="100000">$100K</option><option value="200000">$200K</option><option value="300000">$300K</option><option value="400000">$400K</option><option value="500000">$500K</option><option value="750000">$750K</option><option value="1000000">$1M</option><option value="1500000">$1.5M</option><option value="2000000">$2M</option><option value="3000000">$3M</option><option value="5000000">$5M</option></select></div>
+<div class="search-field"><label>Max Price</label><select id="fMaxPrice"><option value="">Any</option><option value="200000">$200K</option><option value="300000">$300K</option><option value="500000">$500K</option><option value="750000">$750K</option><option value="1000000">$1M</option><option value="1500000">$1.5M</option><option value="2000000">$2M</option><option value="3000000">$3M</option><option value="5000000">$5M</option><option value="10000000">$10M</option></select></div>
+<div class="search-field"><label>Beds</label><select id="fBeds"><option value="">Any</option><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option><option value="4">4+</option><option value="5">5+</option></select></div>
+<div class="search-field"><label>Baths</label><select id="fBaths"><option value="">Any</option><option value="1">1+</option><option value="2">2+</option><option value="3">3+</option></select></div>
+<div class="search-field"><label>Min Sqft</label><select id="fMinSqft"><option value="">Any</option><option value="800">800+</option><option value="1000">1,000+</option><option value="1200">1,200+</option><option value="1500">1,500+</option><option value="2000">2,000+</option><option value="2500">2,500+</option><option value="3000">3,000+</option><option value="4000">4,000+</option><option value="5000">5,000+</option></select></div>
+<div class="search-field"><label>Max Sqft</label><select id="fMaxSqft"><option value="">Any</option><option value="1000">1,000</option><option value="1500">1,500</option><option value="2000">2,000</option><option value="2500">2,500</option><option value="3000">3,000</option><option value="4000">4,000</option><option value="5000">5,000</option><option value="7500">7,500</option></select></div>
+<div class="search-field"><label>Year Built</label><select id="fMinYear"><option value="">Any</option><option value="2024">2024+</option><option value="2020">2020+</option><option value="2010">2010+</option><option value="2000">2000+</option><option value="1990">1990+</option><option value="1980">1980+</option><option value="1970">1970+</option></select></div>
+<div class="search-field"><label>Sort</label><select id="fSort"><option value="newest">Newest</option><option value="price_asc">Price ↑</option><option value="price_desc">Price ↓</option><option value="beds">Bedrooms</option><option value="sqft">Largest</option></select></div>
+<div class="search-field"><label>Status</label><select id="fStatus"><option value="Active">Active</option><option value="Pending">Pending</option><option value="Closed">Sold</option><option value="ALL">All</option></select></div>
+</div>
+<div class="search-actions"><button class="btn-search" onclick="doSearch(1)">Search</button><button class="btn-clear" onclick="clearSearch()">Clear All</button></div>
+</div></div>
+<div class="results-header" id="resultsHeader" style="display:none">
+<div class="results-count" id="resultsCount"></div>
+<div class="sync-time" id="syncTime"></div>
+</div>
+<div class="results-container">
+<div id="resultsArea"><div class="loading"><div class="spinner"></div><span>Loading listings...</span></div></div>
+<div id="paginationArea"></div>
+</div>
+<div class="modal-overlay" id="modal">
+<div class="modal">
+<div class="modal-close"><button onclick="closeModal()">&times;</button></div>
+<div class="modal-gallery" id="modalGallery"></div>
+<div class="modal-body" id="modalBody"></div>
+</div>
+</div>
+<footer class="footer">
+<div class="disclaimer">Listings courtesy of Stellar MLS as distributed by MLS GRID. IDX information is provided exclusively for consumers' personal, non-commercial use. It may not be used for any purpose other than to identify prospective properties consumers may be interested in purchasing. Based on information submitted to the MLS GRID. All data is obtained from various sources and may not have been verified by broker or MLS GRID. Supplied Open House Information is subject to change without notice. All information should be independently reviewed and verified for accuracy. Properties may or may not be listed by the office/agent presenting the information. Listing information &copy; 2026 Stellar MLS. All rights reserved.</div>
+<div class="copyright">&copy; 2026 <a href="https://foursailsrealestate.com">Four Sails Real Estate</a> &bull; Lauralyn Kazimir, Licensed Real Estate Broker</div>
+</footer>
+<script>
+const API='/api';let currentPage=1,abortCtrl=null,lastSync=null,galleryIdx=0,galleryMedia=[];
+const fmtPrice=n=>n==null?'—':'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
+const fmtNum=n=>n==null?'—':Number(n).toLocaleString();
+const fmtAcres=n=>n==null?'—':Number(n).toFixed(2)+' ac';
+const fmtDate=s=>{if(!s)return'—';const d=new Date(s);return d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})};
+const titleCase=s=>s?s.toLowerCase().replace(/\b\w/g,c=>c.toUpperCase()):'';
+const escHtml=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML};
+
+// Pill logic
+document.querySelectorAll('.pill').forEach(pill=>{
+pill.addEventListener('click',function(){
+const group=this.dataset.group,value=this.dataset.value;
+if((group==='county'||group==='waterfront')&&value==='ALL'){
+const all=document.querySelectorAll('.pill[data-group="'+group+'"]');
+const wasActive=this.classList.contains('active');
+all.forEach(p=>p.classList.remove('active'));
+if(!wasActive)this.classList.add('active');
+}else if(group==='county'||group==='waterfront'){
+const allPill=document.querySelector('.pill[data-group="'+group+'"][data-value="ALL"]');
+if(allPill)allPill.classList.remove('active');
+this.classList.toggle('active');
+}else{this.classList.toggle('active')}
+});
+});
+
+function getActivePills(group){return Array.from(document.querySelectorAll('.pill[data-group="'+group+'"].active')).map(p=>p.dataset.value)}
+
+function getParams(){
+const counties=getActivePills('county'),subtypes=getActivePills('subtype'),wfTypes=getActivePills('waterfront'),features=getActivePills('feature');
+return{
+county:counties.includes('ALL')?'':counties.join(','),
+property_subtype:subtypes.join(','),
+waterfront:(wfTypes.includes('ALL')||wfTypes.filter(t=>t!=='ALL').length>0)?'1':'',
+waterfront_type:wfTypes.includes('ALL')?'':wfTypes.filter(t=>t!=='ALL').join(','),
+pool:features.includes('pool')?'1':'',
+city:document.getElementById('fCity').value.trim(),
+zip:document.getElementById('fZip').value.trim(),
+min_price:document.getElementById('fMinPrice').value,
+max_price:document.getElementById('fMaxPrice').value,
+min_beds:document.getElementById('fBeds').value,
+min_baths:document.getElementById('fBaths').value,
+min_sqft:document.getElementById('fMinSqft').value,
+max_sqft:document.getElementById('fMaxSqft').value,
+min_year:document.getElementById('fMinYear').value,
+sort:document.getElementById('fSort').value,
+status:document.getElementById('fStatus').value
+}}
+
+function setForm(p){
+document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+if(p.county){p.county.split(',').forEach(c=>{const pill=document.querySelector('.pill[data-group="county"][data-value="'+c+'"]');if(pill)pill.classList.add('active')})}
+if(p.property_subtype){p.property_subtype.split(',').forEach(s=>{document.querySelectorAll('.pill[data-group="subtype"]').forEach(pill=>{if(pill.dataset.value.split(',').some(v=>s===v))pill.classList.add('active')})})}
+if(p.waterfront_type){p.waterfront_type.split(',').forEach(t=>{const pill=document.querySelector('.pill[data-group="waterfront"][data-value="'+t+'"]');if(pill)pill.classList.add('active')})}
+if(p.pool==='1'){const pp=document.querySelector('.pill[data-group="feature"][data-value="pool"]');if(pp)pp.classList.add('active')}
+document.getElementById('fCity').value=p.city||'';
+document.getElementById('fZip').value=p.zip||'';
+document.getElementById('fMinPrice').value=p.min_price||'';
+document.getElementById('fMaxPrice').value=p.max_price||'';
+document.getElementById('fBeds').value=p.min_beds||'';
+document.getElementById('fBaths').value=p.min_baths||'';
+document.getElementById('fMinSqft').value=p.min_sqft||'';
+document.getElementById('fMaxSqft').value=p.max_sqft||'';
+document.getElementById('fMinYear').value=p.min_year||'';
+document.getElementById('fSort').value=p.sort||'newest';
+document.getElementById('fStatus').value=p.status||'Active';
+}
+
+function saveHash(params,page){const p={...params,page:page>1?page:undefined};const h=Object.entries(p).filter(([,v])=>v).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');history.replaceState(null,'',h?'#'+h:location.pathname)}
+function loadHash(){const h=location.hash.slice(1);if(!h)return null;const p={};h.split('&').forEach(s=>{const[k,v]=s.split('=');if(k&&v)p[k]=decodeURIComponent(v)});return p}
+
+async function doSearch(page){
+if(abortCtrl)abortCtrl.abort();abortCtrl=new AbortController();currentPage=page||1;
+const params=getParams();saveHash(params,currentPage);
+const area=document.getElementById('resultsArea');
+area.innerHTML='<div class="loading"><div class="spinner"></div><span>Searching...</span></div>';
+document.getElementById('paginationArea').innerHTML='';
+const qs=new URLSearchParams();qs.set('page',currentPage);qs.set('per_page','20');
+Object.entries(params).forEach(([k,v])=>{if(v)qs.set(k,v)});
+try{const r=await fetch(API+'/listings?'+qs,{signal:abortCtrl.signal});const data=await r.json();renderResults(data);renderPagination(data);
+if(!lastSync)fetch(API+'/stats').then(r=>r.json()).then(s=>{if(s.sync_state&&s.sync_state.last_sync_timestamp){lastSync=s.sync_state.last_sync_timestamp;document.getElementById('syncTime').textContent='Data updated: '+fmtDate(lastSync)}}).catch(()=>{});
+}catch(e){if(e.name==='AbortError')return;area.innerHTML='<div class="no-results"><h3>Something went wrong</h3><p>Please try again.</p></div>'}}
+
+function renderResults(data){
+const hdr=document.getElementById('resultsHeader');hdr.style.display='flex';
+const countEl=document.getElementById('resultsCount');
+if(data.count_estimated)countEl.innerHTML='<strong>'+fmtNum(data.listings.length)+'+</strong> properties';
+else countEl.innerHTML='<strong>'+fmtNum(data.total)+'</strong> properties found';
+const area=document.getElementById('resultsArea');
+if(!data.listings||data.listings.length===0){area.innerHTML='<div class="no-results"><h3>No properties found</h3><p>Try broadening your search — select more areas, adjust price, or add property types.</p></div>';return}
+const grid=document.createElement('div');grid.className='results-grid';
+data.listings.forEach(l=>{
+const card=document.createElement('div');card.className='card';card.onclick=()=>openDetail(l.listingkey);
+const hasPhoto=l.photoscount>0;
+const photoHtml=hasPhoto?'<img src="https://media.foursailsrealestate.com/photos/'+l.listingid+'/0.jpg" alt="Property" loading="lazy" onerror="imgFallback(this)">':'<div class="placeholder-icon"><img src="https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png" alt="Four Sails" style="width:60px;height:auto;opacity:.7;filter:brightness(0) invert(1)"><span class="coming-soon">Photos Coming Soon</span><span class="brand-name">Four Sails Real Estate</span></div>';
+const tags=[];
+if(l.waterfrontfeatures){try{const wf=typeof l.waterfrontfeatures==="string"?JSON.parse(l.waterfrontfeatures):l.waterfrontfeatures;if(Array.isArray(wf))wf.forEach(w=>tags.push('<span class="tag tag-waterfront">'+escHtml(w)+'</span>'))}catch(e){if(l.waterfrontyn)tags.push('<span class="tag tag-waterfront">Waterfront</span>')}}else if(l.waterfrontyn||l.mfr_wateraccessyn)tags.push('<span class="tag tag-waterfront">Waterfront</span>');
+if(l.poolprivateyn)tags.push('<span class="tag tag-pool">Pool</span>');
+card.innerHTML='<div class="card-photo">'+photoHtml+'<span class="card-status status-'+l.standardstatus+'">'+l.standardstatus+'</span>'+(l.photoscount?'<span class="card-photos-count">📷 '+l.photoscount+'</span>':'')+'</div><div class="card-body"><div class="card-price">'+fmtPrice(l.listprice)+'</div><div class="card-address">'+escHtml(l.unparsedaddress||'—')+(l.city?', '+titleCase(l.city):'')+'</div><div class="card-details">'+(l.bedroomstotal!=null?'<span><strong>'+l.bedroomstotal+'</strong> bd</span>':'')+(l.bathroomstotalinteger!=null?'<span><strong>'+l.bathroomstotalinteger+'</strong> ba</span>':'')+(l.livingarea?'<span><strong>'+fmtNum(l.livingarea)+'</strong> sqft</span>':'')+(l.lotsizeacres&&!l.livingarea?'<span><strong>'+fmtAcres(l.lotsizeacres)+'</strong></span>':'')+(l.yearbuilt?'<span>Built '+l.yearbuilt+'</span>':'')+'</div>'+(tags.length?'<div class="card-tags">'+tags.join('')+'</div>':'')+'<div class="card-meta"><span class="card-office">'+escHtml('Stellar MLS')+'</span><span class="card-dom">'+(l.daysonmarket!=null?l.daysonmarket+' days':'')+'</span></div></div>';
+grid.appendChild(card)});area.innerHTML='';area.appendChild(grid)}
+
+function renderPagination(data){const pa=document.getElementById('paginationArea');if(data.pages<=1){pa.innerHTML='';return}let html='<div class="pagination">';html+='<button '+(data.page<=1?'disabled':'')+' onclick="doSearch('+(data.page-1)+')">&laquo; Prev</button>';const start=Math.max(1,data.page-3),end=Math.min(data.pages,data.page+3);if(start>1){html+='<button onclick="doSearch(1)">1</button>';if(start>2)html+='<button disabled>…</button>'}for(let i=start;i<=end;i++)html+='<button class="'+(i===data.page?'active':'')+'" onclick="doSearch('+i+')">'+i+'</button>';if(end<data.pages){if(end<data.pages-1)html+='<button disabled>…</button>';html+='<button onclick="doSearch('+data.pages+')">'+data.pages+'</button>'}html+='<button '+(data.page>=data.pages?'disabled':'')+' onclick="doSearch('+(data.page+1)+')">Next &raquo;</button></div>';pa.innerHTML=html}
+
+async function openDetail(key,scrollToMap){document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';document.getElementById('modalBody').innerHTML='<div class="loading"><div class="spinner"></div><span>Loading details...</span></div>';document.getElementById('modalGallery').innerHTML='';try{const r=await fetch(API+'/listings/'+key);const l=await r.json();renderDetail(l);if(scrollToMap){var mapEl=document.getElementById('detailMap');if(mapEl)setTimeout(function(){mapEl.scrollIntoView({behavior:'smooth',block:'center'})},100)}}catch(e){document.getElementById('modalBody').innerHTML='<p>Failed to load listing details.</p>'}}
+
+function renderDetail(l){const gallery=document.getElementById('modalGallery');galleryMedia=(l.media||[]).filter(m=>m.MediaURL||m.r2_url);galleryIdx=0;if(galleryMedia.length>0)updateGallery();else gallery.innerHTML='<div class="placeholder-icon"><svg viewBox="0 0 48 48" width="64" height="64"><rect x="6" y="10" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>No photos</span></div>';
+const features=[];['Cooling','Heating','Appliances','CommunityFeatures'].forEach(f=>{if(l[f]){const items=Array.isArray(l[f])?l[f]:[l[f]];items.forEach(i=>features.push(i))}});if(l.waterfrontyn||l.mfr_wateraccessyn)features.push('Waterfront');if(l.poolprivateyn)features.push('Pool');if(l.newconstructionyn)features.push('New Construction');if(l.furnished&&l.furnished!=='Unfurnished')features.push(l.furnished);
+const body=document.getElementById('modalBody');body.innerHTML='<div class="modal-price">'+fmtPrice(l.listprice)+'<span class="modal-status status-'+l.standardstatus+'">'+l.standardstatus+'</span></div>'+(l.originallistprice&&l.originallistprice!==l.listprice?'<div style="font-size:.85rem;color:var(--gray-500)">Original: '+fmtPrice(l.originallistprice)+'</div>':'')+'<div class="modal-address">'+escHtml(l.unparsedaddress||'')+(l.city?', '+titleCase(l.city):'')+', '+(l.stateorprovince||'FL')+' '+(l.postalcode||'')+(l.latitude&&l.longitude?' <a href="#" onclick="event.preventDefault();scrollToMap()" style="font-size:.85rem;color:var(--navy);text-decoration:none;margin-left:6px;cursor:pointer">📍</a>':'')+'</div><div class="modal-mls">MLS# '+(l.listingid||l.listingkey)+' &bull; '+(l.propertytype||'')+' '+(l.propertysubtype?' — '+l.propertysubtype:'')+(l.subdivisionname?' &bull; '+l.subdivisionname:'')+'</div><div class="modal-stats">'+(l.bedroomstotal!=null?'<div class="modal-stat"><div class="val">'+l.bedroomstotal+'</div><div class="lbl">Beds</div></div>':'')+(l.bathroomstotalinteger!=null?'<div class="modal-stat"><div class="val">'+l.bathroomstotalinteger+'</div><div class="lbl">Baths</div></div>':'')+(l.livingarea?'<div class="modal-stat"><div class="val">'+fmtNum(l.livingarea)+'</div><div class="lbl">Sq Ft</div></div>':'')+(l.lotsizeacres?'<div class="modal-stat"><div class="val">'+fmtAcres(l.lotsizeacres)+'</div><div class="lbl">Lot</div></div>':'')+(l.yearbuilt?'<div class="modal-stat"><div class="val">'+l.yearbuilt+'</div><div class="lbl">Built</div></div>':'')+(l.garagespaces?'<div class="modal-stat"><div class="val">'+l.garagespaces+'</div><div class="lbl">Garage</div></div>':'')+(l.daysonmarket!=null?'<div class="modal-stat"><div class="val">'+l.daysonmarket+'</div><div class="lbl">Days Listed</div></div>':'')+(l.taxannualamount?'<div class="modal-stat"><div class="val">'+fmtPrice(l.taxannualamount)+'</div><div class="lbl">Annual Tax</div></div>':'')+'</div>'+(l.publicremarks?'<div class="modal-section"><h3>Description</h3><p>'+escHtml(l.publicremarks)+'</p></div>':'')+(features.length?'<div class="modal-section"><h3>Features</h3><div class="modal-features">'+features.map(f=>'<span class="feat">'+escHtml(f)+'</span>').join('')+'</div></div>':'')+(l.mfr_waterfrontfeettotal?'<div class="modal-section"><h3>Water</h3><p>'+fmtNum(l.mfr_waterfrontfeettotal)+' ft waterfront</p></div>':'')+(l.virtualtoururlunbranded?'<div class="modal-section"><h3>Virtual Tour</h3><p><a href="'+l.virtualtoururlunbranded+'" target="_blank" rel="noopener">View Virtual Tour →</a></p></div>':'')+(l.closedate?'<div class="modal-section"><h3>Sale Info</h3><p>Closed: '+fmtDate(l.closedate)+' at '+fmtPrice(l.closeprice)+'</p></div>':'')+(l.latitude&&l.longitude?'<div class="modal-section" id="detailMap"><h3>Location</h3><div style="border-radius:var(--radius);overflow:hidden;border:1px solid var(--gray-200)"><iframe width="100%" height="350" frameborder="0" style="border:0;display:block" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q='+l.latitude+','+l.longitude+'&t=k&z=17&output=embed"></iframe></div><div style="margin-top:6px;font-size:.75rem"><a href="https://www.google.com/maps?q='+l.latitude+','+l.longitude+'" target="_blank" rel="noopener" style="color:var(--gray-500)">Open in Google Maps →</a></div></div>':'')+'<div class="modal-section"><h3>Interested in This Property?</h3><div class="modal-cta"><div class="cta-text">Contact Four Sails Real Estate for a showing, questions, or a free market analysis.</div><div class="cta-buttons"><a href="tel:+19419154377" class="cta-btn cta-phone">📞 (941) 915-4377</a><a href="mailto:laurie@foursailsrealestate.com" class="cta-btn cta-email">✉️ Email Us</a></div></div></div><div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--gray-200);font-size:.7rem;color:var(--gray-400);line-height:1.6">Listing information &copy; 2026 Stellar MLS as distributed by MLS GRID. Listing provided by '+escHtml(l.listagentfullname||'')+', '+escHtml(l.listofficename||'listing broker')+(l.listagentdirectphone?', '+escHtml(l.listagentdirectphone):'')+'. Data last updated '+fmtDate(lastSync)+'.</div>'}
+
+function updateGallery(){if(!galleryMedia.length)return;const g=document.getElementById('modalGallery');const m=galleryMedia[galleryIdx];const url=m.r2_url||m.MediaURL;g.innerHTML='<img src="'+url+'" alt="Photo '+(galleryIdx+1)+'">'+(galleryMedia.length>1?'<button class="gallery-nav gallery-prev" onclick="event.stopPropagation();galleryIdx=(galleryIdx-1+galleryMedia.length)%galleryMedia.length;updateGallery()">&lsaquo;</button><button class="gallery-nav gallery-next" onclick="event.stopPropagation();galleryIdx=(galleryIdx+1)%galleryMedia.length;updateGallery()">&rsaquo;</button><span class="gallery-counter">'+(galleryIdx+1)+' / '+galleryMedia.length+'</span>':'')}
+
+function scrollToMap(){var m=document.getElementById("detailMap");var c=document.querySelector(".modal");if(m&&c)c.scrollTo({top:m.offsetTop-60,behavior:"smooth"})}
+function closeModal(){document.getElementById('modal').classList.remove('open');document.body.style.overflow=''}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))closeModal()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+
+function clearSearch(){
+document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+document.querySelector('.pill[data-group="county"][data-value="Sarasota"]').classList.add('active');
+document.querySelector('.pill[data-group="county"][data-value="Charlotte"]').classList.add('active');
+document.querySelector('.pill[data-group="county"][data-value="Lee"]').classList.add('active');
+document.querySelector('.pill[data-group="subtype"][data-value="Single Family Residence"]').classList.add('active');
+document.getElementById('fCity').value='';document.getElementById('fZip').value='';
+document.getElementById('fMinPrice').value='';document.getElementById('fMaxPrice').value='';
+document.getElementById('fBeds').value='';document.getElementById('fBaths').value='';
+document.getElementById('fMinSqft').value='';document.getElementById('fMaxSqft').value='';
+document.getElementById('fMinYear').value='';
+document.getElementById('fSort').value='newest';document.getElementById('fStatus').value='Active';
+doSearch(1)}
+
+document.getElementById('fCity').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch(1)});
+document.getElementById('fZip').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch(1)});
+
+const hashParams=loadHash();if(hashParams){setForm(hashParams);doSearch(parseInt(hashParams.page)||1)}else doSearch(1);
+</script>
+</body>
+</html>
