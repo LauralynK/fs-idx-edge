@@ -235,7 +235,8 @@ async function handleSearch(q, client, env, cors) {
     mfr_wateraccessyn, mfr_waterviewyn, waterfrontfeatures, photoscount, daysonmarket,
     onmarketdate, listingcontractdate, modificationtimestamp, latitude, longitude,
     subdivisionname, listagentfullname, listofficename,
-    newconstructionyn, garageyn, furnished, seniorcommunityyn, associationyn`;
+    newconstructionyn, garageyn, furnished, seniorcommunityyn, associationyn,
+    closeprice, closedate`;
 
   const results = await client.query(
     `SELECT ${cols} FROM listings ${whereSql} ORDER BY ${orderBy} LIMIT ${p()} OFFSET ${p()}`,
