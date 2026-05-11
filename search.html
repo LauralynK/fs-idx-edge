@@ -114,6 +114,39 @@ a{color:var(--navy);text-decoration:none}
 .footer a{color:var(--gold)}
 .footer .disclaimer{max-width:900px;margin:0 auto;font-size:.7rem;line-height:1.6;opacity:.8}
 .footer .copyright{margin-top:12px}
+.agent-contact-block{background:var(--navy);border-radius:var(--radius);padding:24px;margin:20px 0;color:var(--white);text-align:center}
+.agent-cards{display:flex;gap:24px;justify-content:center;margin-bottom:20px;flex-wrap:wrap}
+.agent-card{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;min-width:140px;max-width:180px}
+.agent-headshot{width:80px;height:80px;border-radius:50%;object-fit:cover;border:3px solid var(--gold)}
+.agent-name{font-size:.9rem;font-weight:700;color:var(--white);text-align:center;font-family:'Marcellus',Georgia,serif}
+.agent-title{font-size:.72rem;color:var(--gold);text-align:center;letter-spacing:.3px}
+.agent-cta-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:4px}
+.agent-cta-btn{display:inline-flex;align-items:center;gap:5px;padding:10px 18px;border-radius:var(--radius);font-size:.875rem;font-weight:600;cursor:pointer;border:none;text-decoration:none;transition:all .15s;white-space:nowrap;font-family:inherit}
+.agent-cta-call{background:var(--gold);color:var(--navy);font-family:'Marcellus',Georgia,serif;letter-spacing:.5px}
+.agent-cta-call:hover{background:var(--gold-light)}
+.agent-cta-show,.agent-cta-sign{background:rgba(255,255,255,.12);color:var(--white);border:1px solid rgba(255,255,255,.3)}
+.agent-cta-show:hover,.agent-cta-sign:hover{background:rgba(255,255,255,.22)}
+.lf-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;justify-content:center;align-items:flex-start;padding:20px;overflow-y:auto}
+.lf-overlay.open{display:flex}
+.lf-modal{background:var(--white);border-radius:12px;max-width:480px;width:100%;box-shadow:0 25px 50px -12px rgba(0,0,0,.3);overflow:hidden;margin:auto}
+.lf-header{background:var(--navy);padding:18px 20px;display:flex;justify-content:space-between;align-items:center}
+.lf-header h2{color:var(--white);font-family:'Marcellus',Georgia,serif;font-size:1rem;font-weight:400;letter-spacing:.5px;margin:0}
+.lf-close{width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.15);cursor:pointer;color:var(--white);font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1}
+.lf-close:hover{background:rgba(255,255,255,.28)}
+.lf-body{padding:20px 24px 24px}
+.lf-field{margin-bottom:14px;display:flex;flex-direction:column;gap:4px}
+.lf-field label{font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-600);font-weight:600}
+.lf-field input,.lf-field select,.lf-field textarea{padding:9px 11px;border:1px solid var(--gray-300);border-radius:var(--radius);font-size:.875rem;color:var(--gray-800);background:var(--white);font-family:inherit}
+.lf-field input:focus,.lf-field select:focus,.lf-field textarea:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 2px rgba(29,63,96,.15)}
+.lf-field textarea{resize:vertical;min-height:76px}
+.lf-submit{width:100%;padding:12px;background:var(--gold);color:var(--navy);border:none;border-radius:var(--radius);font-size:.95rem;font-weight:700;cursor:pointer;font-family:'Marcellus',Georgia,serif;letter-spacing:.5px;transition:background .15s;margin-top:4px}
+.lf-submit:hover{background:var(--gold-light)}
+.lf-submit:disabled{opacity:.6;cursor:not-allowed}
+.lf-success{text-align:center;padding:36px 24px}
+.lf-success .lf-check{font-size:2.5rem;margin-bottom:12px}
+.lf-success h3{font-family:'Marcellus',Georgia,serif;color:var(--navy);font-size:1.05rem;margin-bottom:8px}
+.lf-success p{font-size:.875rem;color:var(--gray-500);line-height:1.6}
+.lf-err-msg{background:#fef2f2;border:1px solid #fecaca;border-radius:var(--radius);padding:9px 13px;font-size:.82rem;color:#dc2626;margin-bottom:12px}
 @media(max-width:640px){
 .filter-row{gap:5px}.filter-label{min-width:auto;width:100%;margin-bottom:2px}
 .pill{padding:4px 10px;font-size:.75rem}
@@ -199,6 +232,42 @@ a{color:var(--navy);text-decoration:none}
 <div class="modal-close"><button onclick="closeModal()">&times;</button></div>
 <div class="modal-gallery" id="modalGallery"></div>
 <div class="modal-body" id="modalBody"></div>
+</div>
+</div>
+
+<div class="lf-overlay" id="showingModal" onclick="if(event.target===this)closeLeadForm('showingModal')">
+<div class="lf-modal">
+<div class="lf-header"><h2>📅 Schedule a Showing</h2><button class="lf-close" onclick="closeLeadForm('showingModal')">&times;</button></div>
+<div id="showingFormWrap">
+<form class="lf-body" id="showingForm" onsubmit="submitShowing(event)">
+<div id="showingErr" class="lf-err-msg" style="display:none"></div>
+<div class="lf-field"><label>Your Name *</label><input type="text" id="sf-name" required placeholder="Jane Smith"></div>
+<div class="lf-field"><label>Email *</label><input type="email" id="sf-email" required placeholder="jane@example.com"></div>
+<div class="lf-field"><label>Phone</label><input type="tel" id="sf-phone" placeholder="(941) 555-0100"></div>
+<div style="display:flex;gap:12px">
+<div class="lf-field" style="flex:1"><label>Preferred Date *</label><input type="date" id="sf-date" required></div>
+<div class="lf-field" style="flex:1"><label>Preferred Time *</label><select id="sf-time" required><option value="">Select…</option><option value="Morning (9am–12pm)">Morning (9am–12pm)</option><option value="Afternoon (12pm–5pm)">Afternoon (12pm–5pm)</option><option value="Evening (5pm–7pm)">Evening (5pm–7pm)</option></select></div>
+</div>
+<div class="lf-field"><label>Message (optional)</label><textarea id="sf-msg" placeholder="Any questions or special requests?"></textarea></div>
+<button type="submit" class="lf-submit" id="showingSubmitBtn">Request Showing</button>
+</form>
+</div>
+</div>
+</div>
+
+<div class="lf-overlay" id="signupModal" onclick="if(event.target===this)closeLeadForm('signupModal')">
+<div class="lf-modal">
+<div class="lf-header"><h2>🏠 Get Curated Listings</h2><button class="lf-close" onclick="closeLeadForm('signupModal')">&times;</button></div>
+<div id="signupFormWrap">
+<form class="lf-body" id="signupForm" onsubmit="submitSignup(event)">
+<div id="signupErr" class="lf-err-msg" style="display:none"></div>
+<div class="lf-field"><label>Your Name *</label><input type="text" id="sg-name" required placeholder="Jane Smith"></div>
+<div class="lf-field"><label>Email *</label><input type="email" id="sg-email" required placeholder="jane@example.com"></div>
+<div class="lf-field"><label>Area of Interest *</label><select id="sg-area" required><option value="">Select area…</option><option value="Sarasota">Sarasota</option><option value="Manatee">Manatee</option><option value="Charlotte">Charlotte</option><option value="Lee">Lee</option><option value="Collier">Collier</option><option value="Other">Other</option></select></div>
+<div class="lf-field"><label>Price Range *</label><select id="sg-price" required><option value="">Select range…</option><option value="Under $200K">Under $200K</option><option value="$200K–$400K">$200K–$400K</option><option value="$400K–$600K">$400K–$600K</option><option value="$600K–$1M">$600K–$1M</option><option value="$1M+">$1M+</option></select></div>
+<button type="submit" class="lf-submit" id="signupSubmitBtn">Send Me Listings</button>
+</form>
+</div>
 </div>
 </div>
 <footer class="footer">
@@ -310,9 +379,9 @@ function renderPagination(data){const pa=document.getElementById('paginationArea
 
 async function openDetail(key,scrollToMap){document.getElementById('modal').classList.add('open');document.body.style.overflow='hidden';document.getElementById('modalBody').innerHTML='<div class="loading"><div class="spinner"></div><span>Loading details...</span></div>';document.getElementById('modalGallery').innerHTML='';try{const r=await fetch(API+'/listings/'+key);const l=await r.json();renderDetail(l);if(scrollToMap){var mapEl=document.getElementById('detailMap');if(mapEl)setTimeout(function(){mapEl.scrollIntoView({behavior:'smooth',block:'center'})},100)}}catch(e){document.getElementById('modalBody').innerHTML='<p>Failed to load listing details.</p>'}}
 
-function renderDetail(l){const gallery=document.getElementById('modalGallery');galleryMedia=(l.media||[]).filter(m=>m.MediaURL||m.r2_url);galleryIdx=0;if(galleryMedia.length>0)updateGallery();else gallery.innerHTML='<div class="placeholder-icon"><svg viewBox="0 0 48 48" width="64" height="64"><rect x="6" y="10" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>No photos</span></div>';
+function renderDetail(l){_activeListingAddress=(l.unparsedaddress||'')+(l.city?', '+titleCase(l.city):'');_activeListingMls=l.listingid||l.listingkey||'';const gallery=document.getElementById('modalGallery');galleryMedia=(l.media||[]).filter(m=>m.MediaURL||m.r2_url);galleryIdx=0;if(galleryMedia.length>0)updateGallery();else gallery.innerHTML='<div class="placeholder-icon"><svg viewBox="0 0 48 48" width="64" height="64"><rect x="6" y="10" width="36" height="28" rx="3" fill="none" stroke="currentColor" stroke-width="2"/></svg><span>No photos</span></div>';
 const features=[];['Cooling','Heating','Appliances','CommunityFeatures'].forEach(f=>{if(l[f]){const items=Array.isArray(l[f])?l[f]:[l[f]];items.forEach(i=>features.push(i))}});if(l.waterfrontyn||l.mfr_wateraccessyn)features.push('Waterfront');if(l.poolprivateyn)features.push('Pool');if(l.newconstructionyn)features.push('New Construction');if(l.furnished&&l.furnished!=='Unfurnished')features.push(l.furnished);
-const body=document.getElementById('modalBody');body.innerHTML='<div class="modal-price-row"><div class="modal-price">'+fmtPrice(l.listprice)+'<span class="modal-status status-'+l.standardstatus+'">'+l.standardstatus+'</span></div><div class="modal-price-cta"><a href="tel:+19415002048" class="price-cta-btn">📞 Call</a><a href="mailto:laurie@foursailsrealestate.com?subject='+encodeURIComponent((l.unparsedaddress||'Property')+' - '+(l.listingid||l.listingkey))+'" class="price-cta-btn price-cta-email">✉️ Inquire</a></div></div>'+(l.originallistprice&&l.originallistprice!==l.listprice?'<div style="font-size:.85rem;color:var(--gray-500)">Original: '+fmtPrice(l.originallistprice)+'</div>':'')+'<div class="modal-address">'+escHtml(l.unparsedaddress||'')+(l.city?', '+titleCase(l.city):'')+', '+(l.stateorprovince||'FL')+' '+(l.postalcode||'')+(l.latitude&&l.longitude?' <a href="#" onclick="event.preventDefault();scrollToMap()" style="font-size:.85rem;color:var(--navy);text-decoration:none;margin-left:6px;cursor:pointer">📍</a>':'')+'</div><div class="modal-mls">MLS# '+(l.listingid||l.listingkey)+' &bull; '+(l.propertytype||'')+' '+(l.propertysubtype?' — '+l.propertysubtype:'')+(l.subdivisionname?' &bull; '+l.subdivisionname:'')+'</div><div class="modal-stats">'+(l.bedroomstotal!=null?'<div class="modal-stat"><div class="val">'+l.bedroomstotal+'</div><div class="lbl">Beds</div></div>':'')+(l.bathroomstotalinteger!=null?'<div class="modal-stat"><div class="val">'+l.bathroomstotalinteger+'</div><div class="lbl">Baths</div></div>':'')+(l.livingarea?'<div class="modal-stat"><div class="val">'+fmtNum(l.livingarea)+'</div><div class="lbl">Sq Ft</div></div>':'')+(l.lotsizeacres?'<div class="modal-stat"><div class="val">'+fmtAcres(l.lotsizeacres)+'</div><div class="lbl">Lot</div></div>':'')+(l.yearbuilt?'<div class="modal-stat"><div class="val">'+l.yearbuilt+'</div><div class="lbl">Built</div></div>':'')+(l.garagespaces?'<div class="modal-stat"><div class="val">'+l.garagespaces+'</div><div class="lbl">Garage</div></div>':'')+(l.daysonmarket!=null?'<div class="modal-stat"><div class="val">'+l.daysonmarket+'</div><div class="lbl">Days Listed</div></div>':'')+'</div>'+(l.publicremarks?'<div class="modal-section"><h3>Description</h3><p>'+escHtml(l.publicremarks)+'</p></div>':'')+(features.length?'<div class="modal-section"><h3>Features</h3><div class="modal-features">'+features.map(f=>'<span class="feat">'+escHtml(f)+'</span>').join('')+'</div></div>':'')+(l.mfr_waterfrontfeettotal?'<div class="modal-section"><h3>Water</h3><p>'+fmtNum(l.mfr_waterfrontfeettotal)+' ft waterfront</p></div>':'')+(l.virtualtoururlunbranded?'<div class="modal-section"><h3>Virtual Tour</h3><p><a href="'+l.virtualtoururlunbranded+'" target="_blank" rel="noopener">View Virtual Tour →</a></p></div>':'')+(l.closedate?'<div class="modal-section"><h3>Sale Info</h3><p>Closed: '+fmtDate(l.closedate)+' at '+fmtPrice(l.closeprice)+'</p></div>':'')+(l.latitude&&l.longitude?'<div class="modal-section" id="detailMap"><h3>Location</h3><div style="border-radius:var(--radius);overflow:hidden;border:1px solid var(--gray-200)"><iframe width="100%" height="350" frameborder="0" style="border:0;display:block" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q='+l.latitude+','+l.longitude+'&t=k&z=17&output=embed"></iframe></div><div style="margin-top:6px;font-size:.75rem"><a href="https://www.google.com/maps?q='+l.latitude+','+l.longitude+'" target="_blank" rel="noopener" style="color:var(--gray-500)">Open in Google Maps →</a></div></div>':'')+'<div class="modal-section"><h3>Interested in This Property?</h3><div class="modal-cta"><div class="cta-text">Contact Four Sails Real Estate for a showing, questions, or a free market analysis.</div><div class="cta-buttons"><a href="tel:+19415002048" class="cta-btn cta-phone">📞 (941) 500-2048</a><a href="mailto:laurie@foursailsrealestate.com" class="cta-btn cta-email">✉️ Email Us</a></div></div></div><div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--gray-200);font-size:.7rem;color:var(--gray-400);line-height:1.6">Listing information &copy; 2026 Stellar MLS as distributed by MLS GRID. Listing provided by '+escHtml(l.listagentfullname||'')+', '+escHtml(l.listofficename||'listing broker')+(l.listagentdirectphone?', '+escHtml(l.listagentdirectphone):'')+'. Data last updated '+fmtDate(lastSync)+'.</div>'}
+const body=document.getElementById('modalBody');body.innerHTML='<div class="modal-price-row"><div class="modal-price">'+fmtPrice(l.listprice)+'<span class="modal-status status-'+l.standardstatus+'">'+l.standardstatus+'</span></div><div class="modal-price-cta"><a href="tel:+19415002048" class="price-cta-btn">📞 Call</a><a href="mailto:laurie@foursailsrealestate.com?subject='+encodeURIComponent((l.unparsedaddress||'Property')+' - '+(l.listingid||l.listingkey))+'" class="price-cta-btn price-cta-email">✉️ Inquire</a></div></div>'+(l.originallistprice&&l.originallistprice!==l.listprice?'<div style="font-size:.85rem;color:var(--gray-500)">Original: '+fmtPrice(l.originallistprice)+'</div>':'')+'<div class="modal-address">'+escHtml(l.unparsedaddress||'')+(l.city?', '+titleCase(l.city):'')+', '+(l.stateorprovince||'FL')+' '+(l.postalcode||'')+(l.latitude&&l.longitude?' <a href="#" onclick="event.preventDefault();scrollToMap()" style="font-size:.85rem;color:var(--navy);text-decoration:none;margin-left:6px;cursor:pointer">📍</a>':'')+'</div><div class="modal-mls">MLS# '+(l.listingid||l.listingkey)+' &bull; '+(l.propertytype||'')+' '+(l.propertysubtype?' — '+l.propertysubtype:'')+(l.subdivisionname?' &bull; '+l.subdivisionname:'')+'</div><div class="modal-stats">'+(l.bedroomstotal!=null?'<div class="modal-stat"><div class="val">'+l.bedroomstotal+'</div><div class="lbl">Beds</div></div>':'')+(l.bathroomstotalinteger!=null?'<div class="modal-stat"><div class="val">'+l.bathroomstotalinteger+'</div><div class="lbl">Baths</div></div>':'')+(l.livingarea?'<div class="modal-stat"><div class="val">'+fmtNum(l.livingarea)+'</div><div class="lbl">Sq Ft</div></div>':'')+(l.lotsizeacres?'<div class="modal-stat"><div class="val">'+fmtAcres(l.lotsizeacres)+'</div><div class="lbl">Lot</div></div>':'')+(l.yearbuilt?'<div class="modal-stat"><div class="val">'+l.yearbuilt+'</div><div class="lbl">Built</div></div>':'')+(l.garagespaces?'<div class="modal-stat"><div class="val">'+l.garagespaces+'</div><div class="lbl">Garage</div></div>':'')+(l.daysonmarket!=null?'<div class="modal-stat"><div class="val">'+l.daysonmarket+'</div><div class="lbl">Days Listed</div></div>':'')+'</div>'+(l.publicremarks?'<div class="modal-section"><h3>Description</h3><p>'+escHtml(l.publicremarks)+'</p></div>':'')+(features.length?'<div class="modal-section"><h3>Features</h3><div class="modal-features">'+features.map(f=>'<span class="feat">'+escHtml(f)+'</span>').join('')+'</div></div>':'')+(l.mfr_waterfrontfeettotal?'<div class="modal-section"><h3>Water</h3><p>'+fmtNum(l.mfr_waterfrontfeettotal)+' ft waterfront</p></div>':'')+(l.virtualtoururlunbranded?'<div class="modal-section"><h3>Virtual Tour</h3><p><a href="'+l.virtualtoururlunbranded+'" target="_blank" rel="noopener">View Virtual Tour →</a></p></div>':'')+(l.closedate?'<div class="modal-section"><h3>Sale Info</h3><p>Closed: '+fmtDate(l.closedate)+' at '+fmtPrice(l.closeprice)+'</p></div>':'')+(l.latitude&&l.longitude?'<div class="modal-section" id="detailMap"><h3>Location</h3><div style="border-radius:var(--radius);overflow:hidden;border:1px solid var(--gray-200)"><iframe width="100%" height="350" frameborder="0" style="border:0;display:block" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q='+l.latitude+','+l.longitude+'&t=k&z=17&output=embed"></iframe></div><div style="margin-top:6px;font-size:.75rem"><a href="https://www.google.com/maps?q='+l.latitude+','+l.longitude+'" target="_blank" rel="noopener" style="color:var(--gray-500)">Open in Google Maps →</a></div></div>':'')+'<div class="agent-contact-block"><div class="agent-cards"><div class="agent-card"><img class="agent-headshot" src="https://assets.4sails.net/Lauralyn%20Kazimir%20%E2%80%93%20Licensed%20Real%20Estate%20Broker%2C%20Four%20Sails%20Real%20Estate.jpg" alt="Lauralyn Kazimir" loading="lazy"><div class="agent-name">Lauralyn \'Laurie\' Kazimir</div><div class="agent-title">Licensed Real Estate Broker</div></div><div class="agent-card"><img class="agent-headshot" src="https://assets.4sails.net/Christian%20Kazimir%20%E2%80%93%20Broker%20Associate%2C%20Four%20Sails%20Real%20Estate.jpeg" alt="Christian Kazimir" loading="lazy"><div class="agent-name">Christian Kazimir</div><div class="agent-title">Broker Associate</div></div></div><div class="agent-cta-btns"><a href="tel:+19415002048" class="agent-cta-btn agent-cta-call">📞 (941) 500-2048</a><button class="agent-cta-btn agent-cta-show" onclick="openShowing()">📅 Schedule Showing</button><button class="agent-cta-btn agent-cta-sign" onclick="openSignup()">🏠 Get Listings</button></div></div>'+'<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--gray-200);font-size:.7rem;color:var(--gray-400);line-height:1.6">Listing information &copy; 2026 Stellar MLS as distributed by MLS GRID. Listing provided by '+escHtml(l.listagentfullname||'')+', '+escHtml(l.listofficename||'listing broker')+(l.listagentdirectphone?', '+escHtml(l.listagentdirectphone):'')+'. Data last updated '+fmtDate(lastSync)+'.</div>'}
 
 function updateGallery(){if(!galleryMedia.length)return;const g=document.getElementById('modalGallery');const m=galleryMedia[galleryIdx];const url=m.r2_url||m.MediaURL;g.innerHTML='<img src="'+url+'" alt="Photo '+(galleryIdx+1)+'">'+(galleryMedia.length>1?'<button class="gallery-nav gallery-prev" onclick="event.stopPropagation();galleryIdx=(galleryIdx-1+galleryMedia.length)%galleryMedia.length;updateGallery()">&lsaquo;</button><button class="gallery-nav gallery-next" onclick="event.stopPropagation();galleryIdx=(galleryIdx+1)%galleryMedia.length;updateGallery()">&rsaquo;</button><span class="gallery-counter">'+(galleryIdx+1)+' / '+galleryMedia.length+'</span>':'')}
 
@@ -337,6 +406,89 @@ doSearch(1)}
 
 document.getElementById('fCity').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch(1)});
 document.getElementById('fZip').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch(1)});
+
+// ── Lead Form helpers ──────────────────────────────────────────
+let _activeListingAddress='',_activeListingMls='';
+
+function openShowing(){
+  const el=document.getElementById('showingModal');
+  el.classList.add('open');
+  // set min date to today
+  const today=new Date().toISOString().split('T')[0];
+  document.getElementById('sf-date').min=today;
+}
+function openSignup(){document.getElementById('signupModal').classList.add('open')}
+
+function closeLeadForm(id){
+  document.getElementById(id).classList.remove('open');
+  // reset form state
+  if(id==='showingModal'){
+    document.getElementById('showingForm').reset();
+    document.getElementById('showingErr').style.display='none';
+    document.getElementById('showingFormWrap').innerHTML='<form class="lf-body" id="showingForm" onsubmit="submitShowing(event)"><div id="showingErr" class="lf-err-msg" style="display:none"></div><div class="lf-field"><label>Your Name *</label><input type="text" id="sf-name" required placeholder="Jane Smith"></div><div class="lf-field"><label>Email *</label><input type="email" id="sf-email" required placeholder="jane@example.com"></div><div class="lf-field"><label>Phone</label><input type="tel" id="sf-phone" placeholder="(941) 555-0100"></div><div style="display:flex;gap:12px"><div class="lf-field" style="flex:1"><label>Preferred Date *</label><input type="date" id="sf-date" required></div><div class="lf-field" style="flex:1"><label>Preferred Time *</label><select id="sf-time" required><option value="">Select…</option><option value="Morning (9am–12pm)">Morning (9am–12pm)</option><option value="Afternoon (12pm–5pm)">Afternoon (12pm–5pm)</option><option value="Evening (5pm–7pm)">Evening (5pm–7pm)</option></select></div></div><div class="lf-field"><label>Message (optional)</label><textarea id="sf-msg" placeholder="Any questions or special requests?"></textarea></div><button type="submit" class="lf-submit" id="showingSubmitBtn">Request Showing</button></form>';
+  } else if(id==='signupModal'){
+    document.getElementById('signupFormWrap').innerHTML='<form class="lf-body" id="signupForm" onsubmit="submitSignup(event)"><div id="signupErr" class="lf-err-msg" style="display:none"></div><div class="lf-field"><label>Your Name *</label><input type="text" id="sg-name" required placeholder="Jane Smith"></div><div class="lf-field"><label>Email *</label><input type="email" id="sg-email" required placeholder="jane@example.com"></div><div class="lf-field"><label>Area of Interest *</label><select id="sg-area" required><option value="">Select area…</option><option value="Sarasota">Sarasota</option><option value="Manatee">Manatee</option><option value="Charlotte">Charlotte</option><option value="Lee">Lee</option><option value="Collier">Collier</option><option value="Other">Other</option></select></div><div class="lf-field"><label>Price Range *</label><select id="sg-price" required><option value="">Select range…</option><option value="Under $200K">Under $200K</option><option value="$200K–$400K">$200K–$400K</option><option value="$400K–$600K">$400K–$600K</option><option value="$600K–$1M">$600K–$1M</option><option value="$1M+">$1M+</option></select></div><button type="submit" class="lf-submit" id="signupSubmitBtn">Send Me Listings</button></form>';
+  }
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('showingModal').classList.contains('open'))closeLeadForm('showingModal');
+    else if(document.getElementById('signupModal').classList.contains('open'))closeLeadForm('signupModal');
+  }
+});
+
+async function submitShowing(e){
+  e.preventDefault();
+  const btn=document.getElementById('showingSubmitBtn');
+  const errEl=document.getElementById('showingErr');
+  errEl.style.display='none';
+  btn.disabled=true;btn.textContent='Sending…';
+  const payload={
+    name:document.getElementById('sf-name').value.trim(),
+    email:document.getElementById('sf-email').value.trim(),
+    phone:document.getElementById('sf-phone').value.trim(),
+    preferred_date:document.getElementById('sf-date').value,
+    preferred_time:document.getElementById('sf-time').value,
+    message:document.getElementById('sf-msg').value.trim(),
+    listing_address:_activeListingAddress,
+    mls_number:_activeListingMls
+  };
+  try{
+    const r=await fetch(API+'/showing-request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Request failed');
+    document.getElementById('showingFormWrap').innerHTML='<div class="lf-success"><div class="lf-check">✅</div><h3>Request Sent!</h3><p>Thank you! We\'ll confirm your showing shortly.</p></div>';
+  }catch(err){
+    errEl.textContent='Something went wrong: '+(err.message||'please try again.');
+    errEl.style.display='block';
+    btn.disabled=false;btn.textContent='Request Showing';
+  }
+}
+
+async function submitSignup(e){
+  e.preventDefault();
+  const btn=document.getElementById('signupSubmitBtn');
+  const errEl=document.getElementById('signupErr');
+  errEl.style.display='none';
+  btn.disabled=true;btn.textContent='Sending…';
+  const payload={
+    name:document.getElementById('sg-name').value.trim(),
+    email:document.getElementById('sg-email').value.trim(),
+    area:document.getElementById('sg-area').value,
+    price_range:document.getElementById('sg-price').value
+  };
+  try{
+    const r=await fetch(API+'/signup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Request failed');
+    document.getElementById('signupFormWrap').innerHTML='<div class="lf-success"><div class="lf-check">✅</div><h3>You\'re Signed Up!</h3><p>Check your email for a confirmation. We\'ll send you curated listings matching your preferences.</p></div>';
+  }catch(err){
+    errEl.textContent='Something went wrong: '+(err.message||'please try again.');
+    errEl.style.display='block';
+    btn.disabled=false;btn.textContent='Send Me Listings';
+  }
+}
 
 const hashParams=loadHash();if(hashParams){setForm(hashParams);doSearch(parseInt(hashParams.page)||1)}else doSearch(1);
 </script>

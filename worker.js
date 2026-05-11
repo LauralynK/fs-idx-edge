@@ -38,11 +38,19 @@ export default {
 
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
+      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type",
     };
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders });
+    }
+
+    // ── Lead capture routes (no DB needed) ──────────────────────
+    if (request.method === "POST" && path === "/api/showing-request") {
+      return await handleShowingRequest(request, env, corsHeaders);
+    }
+    if (request.method === "POST" && path === "/api/signup") {
+      return await handleSignup(request, env, corsHeaders);
     }
 
     // Connect to Postgres via Hyperdrive
@@ -265,6 +273,151 @@ async function handleStats(client, cors) {
     sync_state: syncRes.rows[0],
     active_count: parseInt(totalRes.rows[0]?.c ?? 0),
   }, cors);
+}
+
+// ── Lead Capture: Showing Request ───────────────────────────────
+
+async function handleShowingRequest(request, env, cors) {
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, cors, 400); }
+
+  const { name = "", email = "", phone = "", preferred_date = "", preferred_time = "", message = "", listing_address = "", mls_number = "" } = body;
+  if (!name || !email) return jsonResponse({ error: "Name and email are required" }, cors, 400);
+
+  // TODO: move these to CF Worker secrets: CRM_API_TOKEN, CRM_CF_CLIENT_ID, CRM_CF_CLIENT_SECRET
+  const CRM_TOKEN = env.CRM_API_TOKEN || "NubMEtYGRVVV_P5mAaJ-wUN4j7TjFiLJpRfK7-iKtX8";
+  const CRM_CLIENT_ID = env.CRM_CF_CLIENT_ID || "54f3b5ea262af3e05491a8b8f7b6aec0.access";
+  const CRM_CLIENT_SECRET = env.CRM_CF_CLIENT_SECRET || "1ca633018b84ab27ad517daa156c9ce866f9cbf04bb9d20d3504cfd4c095f170";
+  const crmHeaders = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${CRM_TOKEN}`,
+    "CF-Access-Client-Id": CRM_CLIENT_ID,
+    "CF-Access-Client-Secret": CRM_CLIENT_SECRET,
+  };
+
+  const nameParts = name.trim().split(/\s+/);
+  const first_name = nameParts[0] || name;
+  const last_name = nameParts.slice(1).join(" ") || "";
+  const notes = `Showing request for ${listing_address} MLS#${mls_number} - ${preferred_date} ${preferred_time}${message ? " - " + message : ""}`;
+
+  const telegramMsg = `🏠 New Showing Request\n${name} wants to see ${listing_address} (MLS# ${mls_number})\n📅 ${preferred_date} ${preferred_time}\n📞 ${phone || "not provided"}\n✉️ ${email}`;
+  const confirmationHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#F8F7F3"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px"><table width="480" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1)"><tr><td style="background:#1D3F60;padding:24px;text-align:center"><img src="https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png" alt="Four Sails Real Estate" height="48" style="filter:brightness(0) invert(1)"><div style="color:#E3DEC3;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-top:8px">Four Sails Real Estate</div></td></tr><tr><td style="background:#ffffff;padding:32px"><h2 style="color:#1D3F60;margin:0 0 16px;font-size:20px">Your Showing Request</h2><p style="color:#374151;line-height:1.7;margin:0 0 12px">Thank you, ${escHtmlWorker(first_name)}! We've received your request to see:</p><div style="background:#F8F7F3;border-left:4px solid #1D3F60;padding:14px 18px;margin:16px 0;border-radius:0 6px 6px 0"><strong style="color:#1D3F60">${escHtmlWorker(listing_address)}</strong>${mls_number ? `<div style="font-size:12px;color:#6b7280;margin-top:4px">MLS# ${escHtmlWorker(mls_number)}</div>` : ""}</div><p style="color:#374151;line-height:1.7;margin:0 0 12px">Requested date: <strong>${escHtmlWorker(preferred_date)}</strong> &bull; ${escHtmlWorker(preferred_time)}</p><p style="color:#374151;line-height:1.7;margin:0">We'll be in touch shortly to confirm the date and time. If you have any questions in the meantime, call us at <a href="tel:+19415002048" style="color:#1D3F60">(941) 500-2048</a>.</p></td></tr><tr><td style="background:#F8F7F3;padding:16px;text-align:center;font-size:11px;color:#9ca3af">&copy; 2026 Four Sails Real Estate &bull; Lauralyn Kazimir, Licensed Real Estate Broker</td></tr></table></td></tr></table></body></html>`;
+
+  const results = await Promise.allSettled([
+    // 1. CRM contact
+    fetch("https://api.4sails.net/api/contacts", {
+      method: "POST",
+      headers: crmHeaders,
+      body: JSON.stringify({ first_name, last_name, email, phone, lead_source: "idx_showing_request", notes }),
+    }),
+    // 2. CRM task
+    fetch("https://api.4sails.net/api/tasks", {
+      method: "POST",
+      headers: crmHeaders,
+      body: JSON.stringify({
+        title: `Showing Request - ${listing_address}`,
+        description: notes,
+        priority: "high",
+        domain: "re",
+        task_type: "showing",
+      }),
+    }),
+    // 3. Telegram alert
+    env.TELEGRAM_BOT_TOKEN ? fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: "-1003784623764", text: telegramMsg }),
+    }) : Promise.resolve(),
+    // 4. Mailgun confirmation
+    env.MAILGUN_API_KEY ? sendMailgun(env.MAILGUN_API_KEY, {
+      from: "Four Sails Real Estate <info@foursails.vip>",
+      to: email,
+      subject: `Your Showing Request - ${listing_address}`,
+      html: confirmationHtml,
+    }) : Promise.resolve(),
+  ]);
+
+  // Log any failures but don't surface them to the user
+  results.forEach((r, i) => { if (r.status === "rejected") console.error(`showingRequest action ${i} failed:`, r.reason); });
+
+  return jsonResponse({ status: "ok" }, cors);
+}
+
+// ── Lead Capture: Listing Signup ─────────────────────────────────
+
+async function handleSignup(request, env, cors) {
+  let body;
+  try { body = await request.json(); } catch { return jsonResponse({ error: "Invalid JSON" }, cors, 400); }
+
+  const { name = "", email = "", area = "", price_range = "" } = body;
+  if (!name || !email) return jsonResponse({ error: "Name and email are required" }, cors, 400);
+
+  // TODO: move these to CF Worker secrets: CRM_API_TOKEN, CRM_CF_CLIENT_ID, CRM_CF_CLIENT_SECRET
+  const CRM_TOKEN = env.CRM_API_TOKEN || "NubMEtYGRVVV_P5mAaJ-wUN4j7TjFiLJpRfK7-iKtX8";
+  const CRM_CLIENT_ID = env.CRM_CF_CLIENT_ID || "54f3b5ea262af3e05491a8b8f7b6aec0.access";
+  const CRM_CLIENT_SECRET = env.CRM_CF_CLIENT_SECRET || "1ca633018b84ab27ad517daa156c9ce866f9cbf04bb9d20d3504cfd4c095f170";
+  const crmHeaders = {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${CRM_TOKEN}`,
+    "CF-Access-Client-Id": CRM_CLIENT_ID,
+    "CF-Access-Client-Secret": CRM_CLIENT_SECRET,
+  };
+
+  const nameParts = name.trim().split(/\s+/);
+  const first_name = nameParts[0] || name;
+  const last_name = nameParts.slice(1).join(" ") || "";
+  const notes = `Listing signup via IDX. Area: ${area} | Budget: ${price_range}`;
+
+  const telegramMsg = `📋 New Listing Signup\n${name} (${email})\nArea: ${area} | Budget: ${price_range}`;
+  const confirmationHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#F8F7F3"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px"><table width="480" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1)"><tr><td style="background:#1D3F60;padding:24px;text-align:center"><img src="https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png" alt="Four Sails Real Estate" height="48" style="filter:brightness(0) invert(1)"><div style="color:#E3DEC3;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-top:8px">Four Sails Real Estate</div></td></tr><tr><td style="background:#ffffff;padding:32px"><h2 style="color:#1D3F60;margin:0 0 16px;font-size:20px">Welcome to Four Sails Real Estate</h2><p style="color:#374151;line-height:1.7;margin:0 0 12px">Hi ${escHtmlWorker(first_name)}, thanks for signing up! We'll send you curated listings in <strong>${escHtmlWorker(area)}</strong> matching your budget of <strong>${escHtmlWorker(price_range)}</strong>.</p><p style="color:#374151;line-height:1.7;margin:0 0 12px">Our team handpicks properties that match your preferences — no spam, just great listings.</p><p style="color:#374151;line-height:1.7;margin:0">Questions? Call us at <a href="tel:+19415002048" style="color:#1D3F60">(941) 500-2048</a> or reply to this email.</p></td></tr><tr><td style="background:#F8F7F3;padding:16px;text-align:center;font-size:11px;color:#9ca3af">&copy; 2026 Four Sails Real Estate &bull; Lauralyn Kazimir, Licensed Real Estate Broker</td></tr></table></td></tr></table></body></html>`;
+
+  const results = await Promise.allSettled([
+    // 1. CRM contact
+    fetch("https://api.4sails.net/api/contacts", {
+      method: "POST",
+      headers: crmHeaders,
+      body: JSON.stringify({ first_name, last_name, email, lead_source: "idx_listing_signup", notes }),
+    }),
+    // 2. Telegram alert
+    env.TELEGRAM_BOT_TOKEN ? fetch(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: "-1003784623764", text: telegramMsg }),
+    }) : Promise.resolve(),
+    // 3. Mailgun confirmation
+    env.MAILGUN_API_KEY ? sendMailgun(env.MAILGUN_API_KEY, {
+      from: "Four Sails Real Estate <info@foursails.vip>",
+      to: email,
+      subject: "Welcome to Four Sails Real Estate",
+      html: confirmationHtml,
+    }) : Promise.resolve(),
+  ]);
+
+  results.forEach((r, i) => { if (r.status === "rejected") console.error(`signup action ${i} failed:`, r.reason); });
+
+  return jsonResponse({ status: "ok" }, cors);
+}
+
+// ── Mailgun helper ───────────────────────────────────────────────
+
+async function sendMailgun(apiKey, { from, to, subject, html }) {
+  const form = new URLSearchParams();
+  form.append("from", from);
+  form.append("to", to);
+  form.append("subject", subject);
+  form.append("html", html);
+  return fetch("https://api.mailgun.net/v3/mail.4sails.net/messages", {
+    method: "POST",
+    headers: {
+      "Authorization": "Basic " + btoa("api:" + apiKey),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: form.toString(),
+  });
+}
+
+function escHtmlWorker(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 }
 
 function jsonResponse(data, cors, status = 200) {
