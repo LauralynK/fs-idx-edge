@@ -285,9 +285,9 @@ async function handleShowingRequest(request, env, cors) {
   if (!name || !email) return jsonResponse({ error: "Name and email are required" }, cors, 400);
 
   // TODO: move these to CF Worker secrets: CRM_API_TOKEN, CRM_CF_CLIENT_ID, CRM_CF_CLIENT_SECRET
-  const CRM_TOKEN = env.CRM_API_TOKEN || "NubMEtYGRVVV_P5mAaJ-wUN4j7TjFiLJpRfK7-iKtX8";
-  const CRM_CLIENT_ID = env.CRM_CF_CLIENT_ID || "54f3b5ea262af3e05491a8b8f7b6aec0.access";
-  const CRM_CLIENT_SECRET = env.CRM_CF_CLIENT_SECRET || "1ca633018b84ab27ad517daa156c9ce866f9cbf04bb9d20d3504cfd4c095f170";
+  const CRM_TOKEN = env.CRM_API_KEY || "NubMEtYGRVVV_P5mAaJ-wUN4j7TjFiLJpRfK7-iKtX8";
+  const CRM_CLIENT_ID = env.CF_ACCESS_CLIENT_ID || "54f3b5ea262af3e05491a8b8f7b6aec0.access";
+  const CRM_CLIENT_SECRET = env.CF_ACCESS_CLIENT_SECRET || "1ca633018b84ab27ad517daa156c9ce866f9cbf04bb9d20d3504cfd4c095f170";
   const crmHeaders = {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${CRM_TOKEN}`,
@@ -353,9 +353,9 @@ async function handleSignup(request, env, cors) {
   if (!name || !email) return jsonResponse({ error: "Name and email are required" }, cors, 400);
 
   // TODO: move these to CF Worker secrets: CRM_API_TOKEN, CRM_CF_CLIENT_ID, CRM_CF_CLIENT_SECRET
-  const CRM_TOKEN = env.CRM_API_TOKEN || "NubMEtYGRVVV_P5mAaJ-wUN4j7TjFiLJpRfK7-iKtX8";
-  const CRM_CLIENT_ID = env.CRM_CF_CLIENT_ID || "54f3b5ea262af3e05491a8b8f7b6aec0.access";
-  const CRM_CLIENT_SECRET = env.CRM_CF_CLIENT_SECRET || "1ca633018b84ab27ad517daa156c9ce866f9cbf04bb9d20d3504cfd4c095f170";
+  const CRM_TOKEN = env.CRM_API_KEY || "NubMEtYGRVVV_P5mAaJ-wUN4j7TjFiLJpRfK7-iKtX8";
+  const CRM_CLIENT_ID = env.CF_ACCESS_CLIENT_ID || "54f3b5ea262af3e05491a8b8f7b6aec0.access";
+  const CRM_CLIENT_SECRET = env.CF_ACCESS_CLIENT_SECRET || "1ca633018b84ab27ad517daa156c9ce866f9cbf04bb9d20d3504cfd4c095f170";
   const crmHeaders = {
     "Content-Type": "application/json",
     "Authorization": `Bearer ${CRM_TOKEN}`,
