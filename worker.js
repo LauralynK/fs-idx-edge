@@ -226,6 +226,7 @@ async function handleSearch(q, client, env, cors) {
   return jsonResponse({
     listings: results.rows,
     total,
+    pages: Math.ceil(total / perPage),
     page,
     per_page: perPage,
     has_more: results.rows.length === perPage,
