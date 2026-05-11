@@ -169,6 +169,24 @@ async function handleSearch(q, client, env, cors) {
   if (q.get("pool") === "1") {
     where.push("poolprivateyn = true");
   }
+  if (q.get("new_construction") === "1") {
+    where.push("newconstructionyn = 'true'");
+  }
+  if (q.get("garage") === "1") {
+    where.push("garageyn = 'true'");
+  }
+  if (q.get("furnished") === "1") {
+    where.push("furnished IS NOT NULL AND furnished != 'Unfurnished'");
+  }
+  if (q.get("water_view") === "1") {
+    where.push("mfr_waterviewyn = 'true'");
+  }
+  if (q.get("no_hoa") === "1") {
+    where.push("(associationyn = 'false' OR associationyn IS NULL)");
+  }
+  if (q.get("senior") === "1") {
+    where.push("seniorcommunityyn = 'true'");
+  }
 
   // Waterfront type
   const wfTypes = q.get("waterfront_type");
@@ -216,7 +234,8 @@ async function handleSearch(q, client, env, cors) {
     livingarea, lotsizeacres, yearbuilt, garagespaces, poolprivateyn, waterfrontyn,
     mfr_wateraccessyn, mfr_waterviewyn, waterfrontfeatures, photoscount, daysonmarket,
     onmarketdate, listingcontractdate, modificationtimestamp, latitude, longitude,
-    subdivisionname, listagentfullname, listofficename`;
+    subdivisionname, listagentfullname, listofficename,
+    newconstructionyn, garageyn, furnished, seniorcommunityyn, associationyn`;
 
   const results = await client.query(
     `SELECT ${cols} FROM listings ${whereSql} ORDER BY ${orderBy} LIMIT ${p()} OFFSET ${p()}`,
