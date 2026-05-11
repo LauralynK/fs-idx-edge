@@ -217,6 +217,12 @@ a{color:var(--navy);text-decoration:none}
 <div class="filter-row">
 <span class="filter-label">Features</span>
 <span class="pill" data-group="feature" data-value="pool">Pool</span>
+<span class="pill" data-group="feature" data-value="new_construction">New Construction</span>
+<span class="pill" data-group="feature" data-value="garage">Garage</span>
+<span class="pill" data-group="feature" data-value="furnished">Furnished</span>
+<span class="pill" data-group="feature" data-value="water_view">Water View</span>
+<span class="pill" data-group="feature" data-value="no_hoa">No HOA</span>
+<span class="pill" data-group="feature" data-value="senior">55+</span>
 </div>
 <div class="dropdowns-row">
 <div class="search-field"><label>City</label><input type="text" id="fCity" placeholder="Any city"></div>
@@ -324,6 +330,12 @@ property_subtype:subtypes.join(','),
 waterfront:(wfTypes.includes('ALL')||wfTypes.filter(t=>t!=='ALL').length>0)?'1':'',
 waterfront_type:wfTypes.includes('ALL')?'':wfTypes.filter(t=>t!=='ALL').join(','),
 pool:features.includes('pool')?'1':'',
+new_construction:features.includes('new_construction')?'1':'',
+garage:features.includes('garage')?'1':'',
+furnished:features.includes('furnished')?'1':'',
+water_view:features.includes('water_view')?'1':'',
+no_hoa:features.includes('no_hoa')?'1':'',
+senior:features.includes('senior')?'1':'',
 city:document.getElementById('fCity').value.trim(),
 zip:document.getElementById('fZip').value.trim(),
 min_price:document.getElementById('fMinPrice').value,
@@ -343,6 +355,12 @@ if(p.county){p.county.split(',').forEach(c=>{const pill=document.querySelector('
 if(p.property_subtype){p.property_subtype.split(',').forEach(s=>{document.querySelectorAll('.pill[data-group="subtype"]').forEach(pill=>{if(pill.dataset.value.split(',').some(v=>s===v))pill.classList.add('active')})})}
 if(p.waterfront_type){p.waterfront_type.split(',').forEach(t=>{const pill=document.querySelector('.pill[data-group="waterfront"][data-value="'+t+'"]');if(pill)pill.classList.add('active')})}
 if(p.pool==='1'){const pp=document.querySelector('.pill[data-group="feature"][data-value="pool"]');if(pp)pp.classList.add('active')}
+if(p.new_construction==='1'){const pp=document.querySelector('.pill[data-group="feature"][data-value="new_construction"]');if(pp)pp.classList.add('active')}
+if(p.garage==='1'){const pp=document.querySelector('.pill[data-group="feature"][data-value="garage"]');if(pp)pp.classList.add('active')}
+if(p.furnished==='1'){const pp=document.querySelector('.pill[data-group="feature"][data-value="furnished"]');if(pp)pp.classList.add('active')}
+if(p.water_view==='1'){const pp=document.querySelector('.pill[data-group="feature"][data-value="water_view"]');if(pp)pp.classList.add('active')}
+if(p.no_hoa==='1'){const pp=document.querySelector('.pill[data-group="feature"][data-value="no_hoa"]');if(pp)pp.classList.add('active')}
+if(p.senior==='1'){const pp=document.querySelector('.pill[data-group="feature"][data-value="senior"]');if(pp)pp.classList.add('active')}
 document.getElementById('fCity').value=p.city||'';
 document.getElementById('fZip').value=p.zip||'';
 document.getElementById('fMinPrice').value=p.min_price||'';
