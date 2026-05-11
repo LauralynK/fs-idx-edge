@@ -89,7 +89,7 @@ export default {
 // ── Search ──────────────────────────────────────────────────────
 
 async function handleSearch(q, client, env, cors) {
-  const where = ["mlgcanview = true", "(photos_synced = true OR photoscount = 0)"];
+  const where = ["mlgcanview = true"];
   const params = [];
   let paramIdx = 0;
   const p = () => `$${++paramIdx}`;
@@ -110,6 +110,10 @@ async function handleSearch(q, client, env, cors) {
     }
   }
 
+  // Only require photos_synced for non-Closed listings
+  if (status !== "Closed") {
+    where.push("(photos_synced = true OR photoscount = 0)");
+  }
   // County
   const county = q.get("county");
   if (county) {
