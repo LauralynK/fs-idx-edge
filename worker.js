@@ -1,5 +1,5 @@
 /**
- * FS IDX Edge Search — Cloudflare Worker + Hyperdrive (Neon Postgres)
+ * FS IDX Edge Search — build 20260511-1805 — Cloudflare Worker + Hyperdrive (Neon Postgres)
  * 
  * Serves search UI, listing API, detail views, stats.
  * All data from Neon via Hyperdrive. Photos from R2.
