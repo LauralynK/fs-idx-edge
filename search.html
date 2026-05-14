@@ -178,8 +178,8 @@ a{color:var(--navy);text-decoration:none}
 .view-btn{padding:6px 14px;font-size:.8rem;cursor:pointer;border:none;background:var(--white);color:var(--gray-600);transition:all .15s;font-family:inherit}
 .view-btn.active{background:var(--navy);color:var(--white)}
 .view-btn:hover:not(.active){background:var(--gray-100)}
-.map-layout{display:flex;height:calc(100vh - 260px);min-height:500px;max-width:1400px;margin:0 auto;padding:0 24px 24px;gap:16px}
-.map-container{flex:1;min-width:0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--gray-200);position:relative}
+.map-layout{display:flex;height:calc(100vh - 260px);min-height:500px;max-width:1400px;margin:0 auto;padding:0 24px 24px;gap:16px;position:relative;z-index:1}
+.map-container{flex:1;min-width:0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--gray-200);position:relative;z-index:1}
 .map-cards{width:380px;flex-shrink:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px}
 .map-cards .card{flex-shrink:0}
 .map-cards .card-photo{aspect-ratio:16/9}
