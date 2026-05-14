@@ -166,6 +166,18 @@ async function handleSearch(q, client, env, cors) {
     }
   }
 
+  // Bounds (map search) — sw_lat,sw_lng,ne_lat,ne_lng
+  const bounds = q.get("bounds");
+  if (bounds) {
+    const [swLat, swLng, neLat, neLng] = bounds.split(",").map(Number);
+    if ([swLat, swLng, neLat, neLng].every(n => !isNaN(n))) {
+      where.push(`latitude BETWEEN ${p()} AND ${p()}`);
+      params.push(swLat, neLat);
+      where.push(`longitude BETWEEN ${p()} AND ${p()}`);
+      params.push(swLng, neLng);
+    }
+  }
+
   // Waterfront / pool
   if (q.get("waterfront") === "1") {
     where.push("(waterfrontyn = true OR mfr_wateraccessyn = true)");

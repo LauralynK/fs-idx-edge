@@ -173,10 +173,31 @@ a{color:var(--navy);text-decoration:none}
 .results-container{padding:0 12px 24px}.results-header{padding:0 12px}
 }
 @media(max-width:400px){.dropdowns-row{flex-direction:column;width:100%}.search-field{width:100%}}
+/* Map view */
+.view-toggle{display:inline-flex;border:1px solid var(--gray-300);border-radius:var(--radius);overflow:hidden;margin-left:auto}
+.view-btn{padding:6px 14px;font-size:.8rem;cursor:pointer;border:none;background:var(--white);color:var(--gray-600);transition:all .15s;font-family:inherit}
+.view-btn.active{background:var(--navy);color:var(--white)}
+.view-btn:hover:not(.active){background:var(--gray-100)}
+.map-layout{display:flex;height:calc(100vh - 260px);min-height:500px;max-width:1400px;margin:0 auto;padding:0 24px 24px;gap:16px}
+.map-container{flex:1;min-width:0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--gray-200);position:relative}
+.map-cards{width:380px;flex-shrink:0;overflow-y:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px}
+.map-cards .card{flex-shrink:0}
+.map-cards .card-photo{aspect-ratio:16/9}
+.map-card-count{font-size:.8rem;color:var(--gray-500);padding:4px 0;font-weight:600}
+.map-card-highlight{box-shadow:0 0 0 3px var(--navy),var(--shadow-lg)!important}
+.leaflet-popup-content{margin:8px 12px;font-family:'Lato',sans-serif}
+.map-popup-price{font-size:1.1rem;font-weight:700;color:var(--navy);font-family:'Marcellus',Georgia,serif}
+.map-popup-addr{font-size:.8rem;color:var(--gray-600);margin:2px 0}
+.map-popup-stats{font-size:.75rem;color:var(--gray-500)}
+.map-popup-link{display:block;margin-top:6px;font-size:.8rem;color:var(--navy);font-weight:600;cursor:pointer}
+@media(max-width:900px){.map-layout{flex-direction:column;height:auto}.map-container{height:50vh;min-height:300px}.map-cards{width:100%;max-height:50vh}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&family=Marcellus&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
 </head>
 <body>
 <header class="header">
@@ -241,11 +262,18 @@ a{color:var(--navy);text-decoration:none}
 </div></div>
 <div class="results-header" id="resultsHeader" style="display:none">
 <div class="results-count" id="resultsCount"></div>
+<div style="display:flex;align-items:center;gap:12px">
 <div class="sync-time" id="syncTime"></div>
+<div class="view-toggle"><button class="view-btn active" id="viewList" onclick="setView('list')">☰ List</button><button class="view-btn" id="viewMap" onclick="setView('map')">🗺️ Map</button></div>
 </div>
-<div class="results-container">
+</div>
+<div class="results-container" id="listView">
 <div id="resultsArea"><div class="loading"><div class="spinner"></div><span>Loading listings...</span></div></div>
 <div id="paginationArea"></div>
+</div>
+<div class="map-layout" id="mapView" style="display:none">
+<div class="map-container" id="mapEl"></div>
+<div class="map-cards" id="mapCards"></div>
 </div>
 <div class="modal-overlay" id="modal">
 <div class="modal">
@@ -296,6 +324,7 @@ a{color:var(--navy);text-decoration:none}
 </footer>
 <script>
 const API='/api';let currentPage=1,abortCtrl=null,lastSync=null,galleryIdx=0,galleryMedia=[];
+function imgFallback(img){img.onerror=null;img.parentElement.innerHTML='<div class="placeholder-icon"><img src="https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png" alt="Four Sails" style="width:40px;height:auto;opacity:.7;filter:brightness(0) invert(1)"><span class="coming-soon" style="font-size:.7rem">Photo Unavailable</span></div>'}
 const fmtPrice=n=>n==null?'—':'$'+Number(n).toLocaleString('en-US',{maximumFractionDigits:0});
 const fmtNum=n=>n==null?'—':Number(n).toLocaleString();
 const fmtAcres=n=>n==null?'—':Number(n).toFixed(2)+' ac';
@@ -526,6 +555,112 @@ async function submitSignup(e){
 }
 
 const hashParams=loadHash();if(hashParams){setForm(hashParams);doSearch(parseInt(hashParams.page)||1)}else doSearch(1);
+</script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+<script>
+let map=null,markers=null,activeView='list',mapListings=[],mapDebounce=null,mapHighlightKey=null;
+const SW_FL_CENTER=[26.95,-82.1],SW_FL_ZOOM=9;
+
+function setView(v){
+activeView=v;
+document.getElementById('viewList').classList.toggle('active',v==='list');
+document.getElementById('viewMap').classList.toggle('active',v==='map');
+document.getElementById('listView').style.display=v==='list'?'':'none';
+document.getElementById('mapView').style.display=v==='map'?'flex':'none';
+if(v==='map'){initMap();loadMapListings()}
+}
+
+function initMap(){
+if(map)return;
+map=L.map('mapEl',{zoomControl:true}).setView(SW_FL_CENTER,SW_FL_ZOOM);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+maxZoom:19,attribution:'&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a>'
+}).addTo(map);
+markers=L.markerClusterGroup({maxClusterRadius:50,spiderfyOnMaxZoom:true,showCoverageOnHover:false,chunkedLoading:true});
+map.addLayer(markers);
+map.on('moveend',function(){clearTimeout(mapDebounce);mapDebounce=setTimeout(loadMapListings,400)});
+setTimeout(()=>map.invalidateSize(),100);
+}
+
+async function loadMapListings(){
+if(!map||activeView!=='map')return;
+const b=map.getBounds();
+const params=getParams();
+const qs=new URLSearchParams();
+qs.set('bounds',[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].join(','));
+qs.set('per_page','100');qs.set('page','1');
+Object.entries(params).forEach(([k,v])=>{if(v)qs.set(k,v)});
+try{
+const r=await fetch(API+'/listings?'+qs);const data=await r.json();
+mapListings=data.listings||[];
+renderMapMarkers();
+renderMapCards(data);
+}catch(e){console.error('Map load error:',e)}
+}
+
+function renderMapMarkers(){
+markers.clearLayers();
+const icon=L.divIcon({className:'',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28],
+html:'<svg viewBox="0 0 28 28" width="28" height="28"><path d="M14 2C8.5 2 4 6.5 4 12c0 7 10 14 10 14s10-7 10-14c0-5.5-4.5-10-10-10z" fill="#1D3F60" stroke="#fff" stroke-width="1.5"/><circle cx="14" cy="11" r="4" fill="#E3DEC3"/></svg>'});
+const activeIcon=L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-34],
+html:'<svg viewBox="0 0 28 28" width="34" height="34"><path d="M14 2C8.5 2 4 6.5 4 12c0 7 10 14 10 14s10-7 10-14c0-5.5-4.5-10-10-10z" fill="#c7a94e" stroke="#1D3F60" stroke-width="2"/><circle cx="14" cy="11" r="4" fill="#1D3F60"/></svg>'});
+
+mapListings.forEach(l=>{
+if(!l.latitude||!l.longitude)return;
+const m=L.marker([l.latitude,l.longitude],{icon:icon,listingKey:l.listingkey});
+const popup='<div class="map-popup-price">'+fmtPrice(l.listprice)+'</div>'
++'<div class="map-popup-addr">'+escHtml(l.unparsedaddress||'')+(l.city?', '+titleCase(l.city):'')+'</div>'
++'<div class="map-popup-stats">'+(l.bedroomstotal!=null?l.bedroomstotal+'bd ':'')+(l.bathroomstotalinteger!=null?l.bathroomstotalinteger+'ba ':'')+(l.livingarea?fmtNum(l.livingarea)+' sqft':'')+'</div>'
++'<a class="map-popup-link" onclick="openDetail(\''+l.listingkey+'\')">View Details →</a>';
+m.bindPopup(popup,{maxWidth:250});
+m.on('click',function(){highlightMapCard(l.listingkey)});
+m.on('mouseover',function(){
+this.setIcon(activeIcon);this.setZIndexOffset(1000);highlightMapCard(l.listingkey)});
+m.on('mouseout',function(){this.setIcon(icon);this.setZIndexOffset(0);unhighlightMapCards()});
+markers.addLayer(m)});
+}
+
+function renderMapCards(data){
+const area=document.getElementById('mapCards');
+area.innerHTML='<div class="map-card-count">Showing '+mapListings.length+' of '+fmtNum(data.total)+' in this area</div>';
+mapListings.forEach(l=>{
+const card=document.createElement('div');card.className='card';card.id='mc-'+l.listingkey;
+card.onclick=()=>openDetail(l.listingkey);
+card.onmouseenter=()=>{highlightMarker(l.listingkey)};
+card.onmouseleave=()=>{unhighlightMarker(l.listingkey)};
+const hasPhoto=l.photoscount>0;
+const photoHtml=hasPhoto?'<img src="https://media.foursailsrealestate.com/photos/'+l.listingid+'/0.jpg" alt="Property" loading="lazy" onerror="imgFallback(this)">':'<div class="placeholder-icon"><img src="https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png" alt="Four Sails" style="width:40px;height:auto;opacity:.7;filter:brightness(0) invert(1)"><span class="coming-soon" style="font-size:.7rem">Photos Coming Soon</span></div>';
+card.innerHTML='<div class="card-photo">'+photoHtml+'<span class="card-status status-'+l.standardstatus+'">'+statusLabel(l.standardstatus)+'</span></div><div class="card-body"><div class="card-price" style="font-size:1.1rem">'+fmtPrice(l.listprice)+'</div><div class="card-address" style="font-size:.8rem">'+escHtml(l.unparsedaddress||'')+(l.city?', '+titleCase(l.city):'')+'</div><div class="card-details" style="font-size:.75rem">'+(l.bedroomstotal!=null?'<span><strong>'+l.bedroomstotal+'</strong> bd</span>':'')+(l.bathroomstotalinteger!=null?'<span><strong>'+l.bathroomstotalinteger+'</strong> ba</span>':'')+(l.livingarea?'<span><strong>'+fmtNum(l.livingarea)+'</strong> sqft</span>':'')+'</div></div>';
+area.appendChild(card)});
+document.getElementById('resultsHeader').style.display='flex';
+document.getElementById('resultsCount').innerHTML='<strong>'+fmtNum(data.total)+'</strong> properties in this area';
+}
+
+function highlightMapCard(key){
+unhighlightMapCards();
+const el=document.getElementById('mc-'+key);
+if(el){el.classList.add('map-card-highlight');el.scrollIntoView({behavior:'smooth',block:'nearest'})}
+}
+function unhighlightMapCards(){document.querySelectorAll('.map-card-highlight').forEach(c=>c.classList.remove('map-card-highlight'))}
+
+function highlightMarker(key){
+markers.eachLayer(m=>{if(m.options.listingKey===key){
+m.setIcon(L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,34],popupAnchor:[0,-34],
+html:'<svg viewBox="0 0 28 28" width="34" height="34"><path d="M14 2C8.5 2 4 6.5 4 12c0 7 10 14 10 14s10-7 10-14c0-5.5-4.5-10-10-10z" fill="#c7a94e" stroke="#1D3F60" stroke-width="2"/><circle cx="14" cy="11" r="4" fill="#1D3F60"/></svg>'}));
+m.setZIndexOffset(1000)}})
+}
+function unhighlightMarker(key){
+const defIcon=L.divIcon({className:'',iconSize:[28,28],iconAnchor:[14,28],popupAnchor:[0,-28],
+html:'<svg viewBox="0 0 28 28" width="28" height="28"><path d="M14 2C8.5 2 4 6.5 4 12c0 7 10 14 10 14s10-7 10-14c0-5.5-4.5-10-10-10z" fill="#1D3F60" stroke="#fff" stroke-width="1.5"/><circle cx="14" cy="11" r="4" fill="#E3DEC3"/></svg>'});
+markers.eachLayer(m=>{if(m.options.listingKey===key){m.setIcon(defIcon);m.setZIndexOffset(0)}})
+}
+
+// Re-search in map view when Search button clicked
+const origDoSearch=doSearch;
+doSearch=function(page){
+if(activeView==='map'){loadMapListings();return}
+origDoSearch(page)}
 </script>
 </body>
 </html>
