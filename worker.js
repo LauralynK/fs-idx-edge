@@ -288,6 +288,12 @@ async function handleSearch(q, client, env, cors) {
   const maxSqft = parseFloat(q.get("max_sqft"));
   if (!isNaN(maxSqft)) { where.push(`livingarea <= ${p()}`); params.push(maxSqft); }
 
+  // Lot size (acres)
+  const minLot = parseFloat(q.get("min_lot"));
+  if (!isNaN(minLot)) { where.push(`lotsizeacres >= ${p()}`); params.push(minLot); }
+  const maxLot = parseFloat(q.get("max_lot"));
+  if (!isNaN(maxLot)) { where.push(`lotsizeacres <= ${p()}`); params.push(maxLot); }
+
   // Sort
   const sortKey = q.get("sort") || "newest";
   const orderBy = VALID_SORTS[sortKey] || VALID_SORTS.newest;
