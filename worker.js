@@ -77,6 +77,42 @@ export default {
           headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
         });
       }
+      // Shareable listing links (2026-07-06): /listing/:key opens the detail
+      // view directly, with OG tags so shared links unfurl with photo + price.
+      if (path.startsWith("/listing/")) {
+        const rawKey = decodeURIComponent(path.split("/listing/")[1] || "").replace(/[^A-Za-z0-9_-]/g, "");
+        if (!rawKey) return Response.redirect(url.origin + "/", 302);
+        const r = await client.query(
+          `SELECT listingkey, listingid, unparsedaddress, city, stateorprovince, postalcode,
+                  listprice, closeprice, standardstatus, bedroomstotal, bathroomstotalinteger,
+                  livingarea, primary_photo, region
+           FROM listings WHERE listingkey = $1 AND mlgcanview = true`, [rawKey]);
+        if (r.rows.length === 0) return Response.redirect(url.origin + "/", 302);
+        const l = r.rows[0];
+        const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        const price = l.standardstatus === "Closed" && l.closeprice ? l.closeprice : l.listprice;
+        const priceStr = price ? "$" + Number(price).toLocaleString("en-US") : "";
+        const title = `${esc(l.unparsedaddress || "")}, ${esc(titleCaseCity(l.city))} — ${priceStr}`;
+        const descBits = [];
+        if (l.bedroomstotal != null) descBits.push(`${l.bedroomstotal} bd`);
+        if (l.bathroomstotalinteger != null) descBits.push(`${l.bathroomstotalinteger} ba`);
+        if (l.livingarea) descBits.push(`${Number(l.livingarea).toLocaleString("en-US")} sqft`);
+        descBits.push(l.standardstatus === "Closed" ? "Sold" : esc(l.standardstatus || ""));
+        const desc = `${descBits.join(" · ")} · MLS# ${esc(String(l.listingid || rawKey).replace(/^MFR/, ""))} · Four Sails Real Estate`;
+        const ogImage = l.primary_photo || "https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png";
+        const inject =
+          `<meta property="og:title" content="${title}">` +
+          `<meta property="og:description" content="${desc}">` +
+          `<meta property="og:image" content="${esc(ogImage)}">` +
+          `<meta property="og:url" content="${esc(url.origin + "/listing/" + rawKey)}">` +
+          `<meta property="og:type" content="website">` +
+          `<meta name="twitter:card" content="summary_large_image">` +
+          (l.region === "PR" ? "<script>window.__PR_MODE__=true</script>" : "") +
+          `<script>window.__OPEN_LISTING__=${JSON.stringify(rawKey)}</script></head>`;
+        return new Response(SEARCH_HTML.replace("</head>", inject), {
+          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+        });
+      }
       // Personal Puerto Rico search (2026-07-06) — same UI in PR mode, noindex
       if (path === "/pr" || path === "/pr/") {
         const prHtml = SEARCH_HTML.replace(
@@ -101,6 +137,10 @@ export default {
 };
 
 // ── Search ──────────────────────────────────────────────────────
+
+function titleCaseCity(s) {
+  return s ? String(s).toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()) : "";
+}
 
 async function handleSearch(q, client, env, cors) {
   const where = ["mlgcanview = true"];
