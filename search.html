@@ -335,6 +335,18 @@ const cleanMls=s=>s?s.replace(/^MFR/,''):'';
 const statusLabel=s=>s==='Closed'?'Sold':s;
 
 
+// PR personal mode (served at /pr): municipality pills, island-wide default
+const PR_MODE=window.__PR_MODE__===true;
+if(PR_MODE){
+const firstCounty=document.querySelector('.pill[data-group="county"]');
+const row=firstCounty.parentElement;
+const munis=['San Juan','Dorado','Guaynabo','Carolina','Humacao','Río Grande','Rincón','Vieques','Cabo Rojo','Fajardo','Luquillo','Ponce'];
+row.innerHTML='<span class="filter-label">Municipality</span>'+munis.map(m=>'<span class="pill" data-group="county" data-value="'+m+'">'+m+'</span>').join('')+'<span class="pill active" data-group="county" data-value="ALL">All PR</span>';
+const sub=document.querySelector('.header-text p');
+if(sub)sub.textContent='Puerto Rico — Personal Search';
+document.title='PR Search — Four Sails';
+}
+
 // Pill logic
 document.querySelectorAll('.pill').forEach(pill=>{
 pill.addEventListener('click',function(){
@@ -357,6 +369,7 @@ function getActivePills(group){return Array.from(document.querySelectorAll('.pil
 function getParams(){
 const counties=getActivePills('county'),subtypes=getActivePills('subtype'),wfTypes=getActivePills('waterfront'),features=getActivePills('feature');
 return{
+region:PR_MODE?'PR':'',
 county:counties.includes('ALL')?'':counties.join(','),
 property_subtype:subtypes.join(','),
 waterfront:(wfTypes.includes('ALL')||wfTypes.filter(t=>t!=='ALL').length>0)?'1':'',
@@ -456,9 +469,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
 
 function clearSearch(){
 document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+if(PR_MODE){
+const allPill=document.querySelector('.pill[data-group="county"][data-value="ALL"]');
+if(allPill)allPill.classList.add('active');
+}else{
 document.querySelector('.pill[data-group="county"][data-value="Sarasota"]').classList.add('active');
 document.querySelector('.pill[data-group="county"][data-value="Charlotte"]').classList.add('active');
 document.querySelector('.pill[data-group="county"][data-value="Lee"]').classList.add('active');
+}
 document.querySelector('.pill[data-group="subtype"][data-value="Single Family Residence"]').classList.add('active');
 document.getElementById('fCity').value='';document.getElementById('fZip').value='';
 document.getElementById('fMinPrice').value='';document.getElementById('fMaxPrice').value='';

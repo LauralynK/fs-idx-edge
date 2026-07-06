@@ -77,6 +77,20 @@ export default {
           headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
         });
       }
+      // Personal Puerto Rico search (2026-07-06) — same UI in PR mode, noindex
+      if (path === "/pr" || path === "/pr/") {
+        const prHtml = SEARCH_HTML.replace(
+          "</head>",
+          '<meta name="robots" content="noindex, nofollow"><script>window.__PR_MODE__=true</script></head>'
+        );
+        return new Response(prHtml, {
+          headers: {
+            "Content-Type": "text/html; charset=utf-8",
+            "X-Robots-Tag": "noindex, nofollow",
+            ...corsHeaders,
+          },
+        });
+      }
       return new Response("Not Found", { status: 404 });
     } catch (err) {
       return jsonResponse({ error: err.message }, corsHeaders, 500);
@@ -110,11 +124,19 @@ async function handleSearch(q, client, env, cors) {
     }
   }
 
-  // Only require photos_synced for non-Closed listings
-  if (status !== "Closed") {
+  // Region: PR personal mode searches Puerto Rico listings island-wide.
+  // PR photo coverage is still backfilling, so don't hide photo-less listings there.
+  const region = q.get("region");
+  const isPR = region === "PR";
+  if (isPR) {
+    where.push("region = 'PR'");
+  }
+
+  // Only require photos_synced for non-Closed listings (FL public search only)
+  if (status !== "Closed" && !isPR) {
     where.push("(photos_synced = true OR photoscount = 0)");
   }
-  // County
+  // County (doubles as municipality filter in PR mode)
   const county = q.get("county");
   if (county) {
     const counties = county.split(",").map(c => c.trim()).filter(Boolean);
@@ -123,7 +145,7 @@ async function handleSearch(q, client, env, cors) {
       where.push(`countyorparish IN (${placeholders})`);
       params.push(...counties);
     }
-  } else {
+  } else if (!isPR) {
     const placeholders = DEFAULT_COUNTIES.map(() => p()).join(",");
     where.push(`countyorparish IN (${placeholders})`);
     params.push(...DEFAULT_COUNTIES);
