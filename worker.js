@@ -31,10 +31,21 @@ const VALID_WF_TYPES = ["gulf", "bay", "canal", "lake", "river", "beach"];
 const DEFAULT_COUNTIES = ["Sarasota", "Charlotte", "Lee"];
 const MAX_PER_PAGE = 50;
 
+// Secrets may arrive as classic per-worker secrets (plain string) or as
+// account Secrets Store bindings (object with .get()). Normalize to strings.
+async function resolveSecrets(env) {
+  for (const k of ["MAILGUN_API_KEY", "TELEGRAM_BOT_TOKEN"]) {
+    if (env[k] && typeof env[k].get === "function") {
+      try { env[k] = await env[k].get(); } catch (e) { console.error(`secret ${k}: ${e.message}`); env[k] = null; }
+    }
+  }
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
+    await resolveSecrets(env);
 
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
@@ -702,6 +713,7 @@ function isDue(s, now) {
 }
 
 async function processSavedSearchAlerts(env) {
+  await resolveSecrets(env);
   if (!env.MAILGUN_API_KEY) { console.error("saved-search alerts: MAILGUN_API_KEY not set, skipping run"); return; }
   const client = new Client({ connectionString: env.HYPERDRIVE.connectionString });
   await client.connect();
