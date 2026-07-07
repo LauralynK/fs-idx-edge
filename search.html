@@ -365,6 +365,14 @@ if(sub)sub.textContent='Puerto Rico — Personal Search';
 document.title='PR Search — Four Sails';
 }
 
+// Area mode (served at /area/:slug): search pre-locked to a defined area
+const AREA=window.__AREA__||null;
+if(AREA){
+const subA=document.querySelector('.header-text p');
+if(subA)subA.textContent=AREA.name+' — Property Search';
+document.title=AREA.name+' Homes for Sale — Four Sails Real Estate';
+}
+
 // Pill logic
 document.querySelectorAll('.pill').forEach(pill=>{
 pill.addEventListener('click',function(){
@@ -388,6 +396,7 @@ function getParams(){
 const counties=getActivePills('county'),subtypes=getActivePills('subtype'),wfTypes=getActivePills('waterfront'),features=getActivePills('feature');
 return{
 region:PR_MODE?'PR':'',
+area:AREA?AREA.slug:'',
 county:counties.includes('ALL')?'':counties.join(','),
 property_subtype:subtypes.join(','),
 waterfront:(wfTypes.includes('ALL')||wfTypes.filter(t=>t!=='ALL').length>0)?'1':'',
@@ -610,6 +619,7 @@ async function submitSignup(e){
 // ── Save Search (email alerts) ────────────────────────────
 function summarizeParams(p){
   const bits=[];
+  if(p.area)bits.push(AREA?AREA.name:p.area);
   if(p.region==='PR')bits.push('Puerto Rico');
   if(p.county)bits.push(p.county.split(',').join(', '));
   if(p.city)bits.push(titleCase(p.city));

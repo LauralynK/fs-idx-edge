@@ -31,6 +31,40 @@ const VALID_WF_TYPES = ["gulf", "bay", "canal", "lake", "river", "beach"];
 const DEFAULT_COUNTIES = ["Sarasota", "Charlotte", "Lee"];
 const MAX_PER_PAGE = 50;
 
+// ── Area pages (2026-07-07) ─────────────────────────────────────
+// Replaces IDX Broker area widgets on foursailsrealestate.com.
+// Barrier-island areas use point-in-polygon (Postgres native geometry).
+// MK south = Census CDP boundary (Charlotte half, simplified); MK north +
+// Casey Key = boundaries derived from listing data and verified against
+// live listings (all matches on-island streets, zero mainland intruders).
+// All values below are server-side constants — safe to inline in SQL.
+const MK_POLY_SOUTH = "((-82.37425,26.94604),(-82.37379,26.94521),(-82.37314,26.94402),(-82.36982,26.93798),(-82.36968,26.93777),(-82.36878,26.9365),(-82.36804,26.93544),(-82.3674,26.93446),(-82.36601,26.93221),(-82.3645,26.92972),(-82.36385,26.92864),(-82.36368,26.92837),(-82.36318,26.92761),(-82.36295,26.92725),(-82.36263,26.92676),(-82.36099,26.92397),(-82.36065,26.92339),(-82.36026,26.92284),(-82.3585,26.9197),(-82.35755,26.91803),(-82.35727,26.91752),(-82.35682,26.91673),(-82.35542,26.9143),(-82.3538,26.91171),(-82.35332,26.91099),(-82.35329,26.91095),(-82.35256,26.90984),(-82.35065,26.90697),(-82.34553,26.89923),(-82.34496,26.89817),(-82.34433,26.89714),(-82.3437,26.89622),(-82.34295,26.89525),(-82.34222,26.89439),(-82.34205,26.89435),(-82.34198,26.8945),(-82.34224,26.89532),(-82.34226,26.8955),(-82.34218,26.89566),(-82.34208,26.89582),(-82.34206,26.89599),(-82.34208,26.89617),(-82.34216,26.89634),(-82.34218,26.8965),(-82.34215,26.89668),(-82.34206,26.89684),(-82.34193,26.89698),(-82.34064,26.89806),(-82.33908,26.90027),(-82.33583,26.90587),(-82.33626,26.90776),(-82.33714,26.90925),(-82.34018,26.91433),(-82.34242,26.91775),(-82.34606,26.92347),(-82.34971,26.92903),(-82.35235,26.93371),(-82.353,26.93444),(-82.35323,26.93456),(-82.35363,26.93464),(-82.35599,26.93653),(-82.35775,26.93896),(-82.36164,26.94607),(-82.36512,26.94614),(-82.37056,26.94606),(-82.3726,26.94604),(-82.37424,26.94604),(-82.37425,26.94604))";
+const MK_POLY_NORTH = "((-82.475,27.036),(-82.475,26.94),(-82.356,26.94),(-82.3635,26.955),(-82.3705,26.96),(-82.379,26.97),(-82.3835,26.98),(-82.3945,26.99),(-82.4033,27.0),(-82.4088,27.01),(-82.4138,27.02),(-82.4197,27.03),(-82.4225,27.036))";
+const CASEY_KEY_POLY = "((-82.515,27.198),(-82.499,27.196),(-82.4965,27.192),(-82.4945,27.186),(-82.494,27.18),(-82.493,27.174),(-82.489,27.168),(-82.4848,27.162),(-82.482,27.156),(-82.479,27.15),(-82.4762,27.142),(-82.474,27.136),(-82.4706,27.131),(-82.469,27.125),(-82.4665,27.118),(-82.464,27.112),(-82.475,27.11),(-82.495,27.15))";
+const WELLEN_SUBS_SQL = ["%WELLEN%", "GRAN PARADISO%", "ISLANDWALK%", "RENAISSANCE%WEST%",
+  "%WEST VILLAGE%", "%WEST VLGS%", "SOLSTICE%", "OASIS%", "TORTUGA", "EVERLY%",
+  "WYSTERIA%", "%VILLAGE K TOWNHOMES%"]
+  .map((s) => `subdivisionname ILIKE '${s}'`).join(" OR ");
+
+const AREAS = {
+  "manasota-key": {
+    name: "Manasota Key",
+    where: `(latitude IS NOT NULL AND (point(longitude,latitude) <@ '${MK_POLY_SOUTH}'::polygon OR point(longitude,latitude) <@ '${MK_POLY_NORTH}'::polygon))`,
+  },
+  "casey-key": {
+    name: "Casey Key",
+    where: `(latitude IS NOT NULL AND point(longitude,latitude) <@ '${CASEY_KEY_POLY}'::polygon)`,
+  },
+  "venice": { name: "Venice", where: `city = 'VENICE'` },
+  "englewood": { name: "Englewood", where: `city = 'ENGLEWOOD'` },
+  "sarasota": { name: "Sarasota", where: `city = 'SARASOTA'` },
+  "nokomis-osprey": { name: "Nokomis & Osprey", where: `city IN ('NOKOMIS','OSPREY')` },
+  "boca-grande": { name: "Boca Grande", where: `city = 'BOCA GRANDE'` },
+  "wellen-park": { name: "Wellen Park", where: `(city IN ('VENICE','NORTH PORT') AND (${WELLEN_SUBS_SQL}))` },
+  "boca-royale": { name: "Boca Royale", where: `(city = 'ENGLEWOOD' AND subdivisionname ILIKE 'BOCA ROYALE%')` },
+};
+
+
 // Secrets may arrive as classic per-worker secrets (plain string) or as
 // account Secrets Store bindings (object with .get()). Normalize to strings.
 async function resolveSecrets(env) {
@@ -151,6 +185,21 @@ export default {
           },
         });
       }
+      // Area pages (2026-07-07): /area/:slug = pre-filtered search page;
+      // /area/:slug/widget = embeddable branded hotsheet for the main site
+      // (replaces IDX Broker <script> widgets on Astro area pages).
+      const areaMatch = path.match(/^\/area\/([a-z0-9-]+)(\/widget)?\/?$/);
+      if (areaMatch && AREAS[areaMatch[1]]) {
+        if (areaMatch[2]) {
+          return await handleAreaWidget(areaMatch[1], url, client, corsHeaders);
+        }
+        const a = AREAS[areaMatch[1]];
+        const inject =
+          `<script>window.__AREA__=${JSON.stringify({ slug: areaMatch[1], name: a.name })}</script></head>`;
+        return new Response(SEARCH_HTML.replace("</head>", inject), {
+          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+        });
+      }
       return new Response("Not Found", { status: 404 });
     } catch (err) {
       return jsonResponse({ error: err.message }, corsHeaders, 500);
@@ -202,6 +251,13 @@ function buildListingFilters(q) {
   const isPR = region === "PR";
   if (isPR) {
     where.push("region = 'PR'");
+  }
+
+  // Area pages: pre-baked geographic filters (see AREAS). Slug is validated
+  // against the AREAS map — unknown values are ignored.
+  const areaSlug = q.get("area");
+  if (areaSlug && AREAS[areaSlug]) {
+    where.push(AREAS[areaSlug].where);
   }
 
   // Only require photos_synced for non-Closed listings (FL public search only)
@@ -373,6 +429,81 @@ async function handleSearch(q, client, env, cors) {
     per_page: perPage,
     has_more: results.rows.length === perPage,
   }, cors);
+}
+
+// ── Area widget: embeddable branded hotsheet ────────────────────
+// Iframed on foursailsrealestate.com area pages (replaces IDX Broker
+// widgets). ?status=Active|Closed  ?limit=1..12 (default 6).
+async function handleAreaWidget(slug, url, client, cors) {
+  const a = AREAS[slug];
+  const q = url.searchParams;
+  const sold = q.get("status") === "Closed";
+  const limit = Math.max(1, Math.min(12, parseInt(q.get("limit")) || 6));
+
+  const fq = new URLSearchParams({ area: slug, status: sold ? "Closed" : "Active" });
+  const { where, params } = buildListingFilters(fq);
+  if (sold) where.push("closedate >= (CURRENT_DATE - INTERVAL '12 months')");
+  const whereSql = "WHERE " + where.join(" AND ");
+  const orderBy = sold ? "closedate DESC NULLS LAST" : "listingcontractdate DESC NULLS LAST";
+
+  const countR = await client.query(`SELECT COUNT(*) c FROM listings ${whereSql}`, params);
+  const total = parseInt(countR.rows[0]?.c ?? 0);
+  const r = await client.query(
+    `SELECT listingkey, listingid, unparsedaddress, city, listprice, closeprice, closedate,
+            standardstatus, bedroomstotal, bathroomstotalinteger, livingarea, photoscount
+     FROM listings ${whereSql} ORDER BY ${orderBy} LIMIT ${limit}`, params);
+
+  const esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  const fmtP = (n) => n ? "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "";
+  const viewAll = `${SITE_ORIGIN}/area/${slug}${sold ? "#status=Closed" : ""}`;
+  const logo = "https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png";
+
+  const cards = r.rows.map((l) => {
+    const link = `${SITE_ORIGIN}/listing/${encodeURIComponent(l.listingkey)}`;
+    const price = sold && l.closeprice ? l.closeprice : l.listprice;
+    const photo = l.photoscount > 0
+      ? `<img src="https://media.foursailsrealestate.com/photos/${esc(l.listingid)}/0.jpg" alt="" loading="lazy" onerror="this.onerror=null;this.src='${logo}';this.style.objectFit='contain';this.style.padding='24px';this.style.filter='brightness(0) invert(1)';this.style.opacity='.6'">`
+      : `<img src="${logo}" alt="" style="object-fit:contain;padding:24px;filter:brightness(0) invert(1);opacity:.6">`;
+    const soldTag = sold && l.closedate
+      ? `<span class="tag">SOLD ${new Date(l.closedate).toLocaleDateString("en-US", { month: "short", year: "numeric" })}</span>` : "";
+    const bits = [];
+    if (l.bedroomstotal != null) bits.push(`<strong>${l.bedroomstotal}</strong> bd`);
+    if (l.bathroomstotalinteger != null) bits.push(`<strong>${l.bathroomstotalinteger}</strong> ba`);
+    if (l.livingarea) bits.push(`<strong>${Number(l.livingarea).toLocaleString("en-US")}</strong> sqft`);
+    return `<a class="wcard" href="${link}" target="_top" rel="noopener"><span class="wphoto">${photo}${soldTag}</span><span class="wbody"><span class="wprice">${fmtP(price)}</span><span class="waddr">${esc(l.unparsedaddress || "")}</span><span class="wdet">${bits.join(" \u00b7 ")}</span></span></a>`;
+  }).join("");
+
+  const html = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>${esc(a.name)} \u2014 Four Sails Real Estate</title><style>
+body{margin:0;padding:0;background:transparent;font-family:'Lato',-apple-system,'Segoe UI',sans-serif}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px;padding:2px}
+.wcard{display:block;text-decoration:none;background:#fff;border:1px solid #e5e2da;border-radius:8px;overflow:hidden;transition:box-shadow .15s,transform .15s}
+.wcard:hover{box-shadow:0 6px 18px rgba(29,63,96,.18);transform:translateY(-2px)}
+.wphoto{display:block;position:relative;height:160px;background:#1D3F60}
+.wphoto img{width:100%;height:100%;object-fit:cover;display:block}
+.tag{position:absolute;top:10px;left:10px;background:#1D3F60;color:#E3DEC3;font-size:.65rem;font-weight:700;letter-spacing:1px;padding:4px 10px;border-radius:3px}
+.wbody{display:block;padding:12px 14px}
+.wprice{display:block;font-family:Georgia,serif;color:#1D3F60;font-size:1.15rem;font-weight:700}
+.waddr{display:block;color:#444;font-size:.8rem;margin:4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wdet{display:block;color:#777;font-size:.75rem}
+.wfoot{text-align:center;padding:16px 8px 6px}
+.wall{display:inline-block;background:#E3DEC3;color:#1D3F60;font-weight:700;font-size:.8rem;letter-spacing:.5px;padding:10px 26px;border-radius:4px;text-decoration:none}
+.wall:hover{background:#d9d2b2}
+.wattr{color:#999;font-size:.62rem;text-align:center;padding:10px 12px 6px;line-height:1.5}
+.wempty{color:#666;font-family:Georgia,serif;text-align:center;padding:30px 12px}
+</style></head><body>
+${r.rows.length ? `<div class="wgrid">${cards}</div>` : `<div class="wempty">No ${sold ? "recent sales" : "active listings"} right now \u2014 check back soon.</div>`}
+<div class="wfoot"><a class="wall" href="${viewAll}" target="_top" rel="noopener">VIEW ALL ${total.toLocaleString("en-US")} ${esc(a.name.toUpperCase())} ${sold ? "SALES (12 MO)" : "LISTINGS"} \u2192</a></div>
+<div class="wattr">Listings courtesy of Stellar MLS as distributed by MLS GRID. IDX information is provided exclusively for consumers' personal, non-commercial use. Listing information \u00a9 ${new Date().getFullYear()} Stellar MLS.</div>
+</body></html>`;
+
+  return new Response(html, {
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=900",
+      "X-Robots-Tag": "noindex",
+      ...cors,
+    },
+  });
 }
 
 // ── Detail ──────────────────────────────────────────────────────
@@ -592,6 +723,7 @@ function fsWrap(title, innerRows) {
 function criteriaSummary(c) {
   const bits = [];
   const fmtP = (n) => "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+  if (c.area && AREAS[c.area]) bits.push(AREAS[c.area].name);
   if (c.region === "PR") bits.push("Puerto Rico");
   if (c.county) bits.push(c.county.split(",").join(", "));
   if (c.city) bits.push(titleCaseCity(c.city));
@@ -612,9 +744,11 @@ function criteriaSummary(c) {
 
 // Deep-link back to the search UI — the site restores filters from the hash.
 function criteriaLink(c) {
-  const entries = Object.entries(c).filter(([k, v]) => v && k !== "region");
+  const entries = Object.entries(c).filter(([k, v]) => v && k !== "region" && k !== "area");
   const hash = entries.map(([k, v]) => k + "=" + encodeURIComponent(v)).join("&");
-  const base = c.region === "PR" ? SITE_ORIGIN + "/pr" : SITE_ORIGIN + "/";
+  let base = SITE_ORIGIN + "/";
+  if (c.region === "PR") base = SITE_ORIGIN + "/pr";
+  else if (c.area && AREAS[c.area]) base = SITE_ORIGIN + "/area/" + c.area;
   return hash ? base + "#" + hash : base;
 }
 
