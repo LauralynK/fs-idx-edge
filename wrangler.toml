@@ -15,6 +15,17 @@ R2_PUBLIC_URL = "https://media.foursailsrealestate.com"
 [triggers]
 crons = ["*/15 * * * *"]
 
+# Account Secrets Store bindings — resolved to strings in worker via resolveSecrets()
+[[secrets_store_secrets]]
+binding = "MAILGUN_API_KEY"
+store_id = "0f8750685fed4c7a8f5c9c2e67ee3861"
+secret_name = "MAILGUN_API_KEY"
+
+[[secrets_store_secrets]]
+binding = "TELEGRAM_BOT_TOKEN"
+store_id = "0f8750685fed4c7a8f5c9c2e67ee3861"
+secret_name = "TELEGRAM_BOT_TOKEN"
+
 [[rules]]
 type = "Text"
 globs = ["**/*.html"]
