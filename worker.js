@@ -564,6 +564,31 @@ function genToken() {
   return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+// ── Four Sails brand email components (per EMAIL-STANDARDS.md) ───────
+
+const FS_ASSETS = "https://assets.4sails.net";
+
+const FS_HEADER = `<tr><td style="background-color:#1D3F60; padding:20px 30px; text-align:center;"><table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td style="vertical-align:middle; padding-right:15px;"><img src="${FS_ASSETS}/Logo%20OUtline%20Test%20copy.png" width="55" height="55" alt="Four Sails Real Estate" style="display:block;"></td><td style="vertical-align:middle; text-align:center;"><span style="color:#ffffff; font-size:16px; letter-spacing:3px; font-family:Georgia, serif; display:block; line-height:1.3;">FOUR SAILS REAL ESTATE</span><span style="color:#E3DEC3; font-size:11px; letter-spacing:4px; font-family:Georgia, serif; display:block; line-height:1.3;">LOVE YOUR NEIGHBORHOOD</span></td></tr></table></td></tr>`;
+
+function fsSignatureCard(headshotUrl, name, title, email, marginBottom) {
+  return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-radius:6px; overflow:hidden; border:1px solid #e8e8e8;${marginBottom ? " margin-bottom:12px;" : ""}"><tr><td width="100" style="width:100px;"><img src="${headshotUrl}" alt="${name.replace(/"/g, "&quot;")}" width="100" style="width:100px; height:100px; object-fit:cover; display:block;"></td><td valign="middle" style="padding:12px 16px;"><p style="margin:0 0 3px; color:#1D3F60; font-size:15px; font-weight:700; font-family:Georgia, serif;">${name}</p><p style="margin:0 0 10px; color:#888; font-size:11px; letter-spacing:1.5px;">${title}</p><table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="padding:0 8px 6px 0; vertical-align:middle;"><a href="tel:9415002048"><img src="${FS_ASSETS}/icon-phone2.png" alt="Phone" width="16" height="16" style="width:16px; height:16px; display:block;"></a></td><td style="padding:0 0 6px 0; vertical-align:middle;"><a href="tel:9415002048" style="color:#1D3F60; text-decoration:none; font-size:13px;">941-500-2048</a></td></tr><tr><td style="padding:0 8px 0 0; vertical-align:middle;"><a href="mailto:${email}"><img src="${FS_ASSETS}/icon-email2.png" alt="Email" width="16" height="16" style="width:16px; height:16px; display:block;"></a></td><td style="padding:0; vertical-align:middle;"><a href="mailto:${email}" style="color:#1D3F60; text-decoration:none; font-size:13px;">${email}</a></td></tr></table></td></tr></table>`;
+}
+
+const FS_DUAL_SIGNATURE =
+  `<tr><td style="padding:0 30px;"><hr style="border:none; border-top:1px solid #e8e8e8; margin:0;"></td></tr>` +
+  `<tr><td style="padding:20px 30px;"><p style="margin:0 0 14px; color:#444; font-size:14px; font-family:Georgia, serif;">Warm regards,</p>` +
+  fsSignatureCard(`${FS_ASSETS}/Lauralyn%20Kazimir%20%E2%80%93%20Licensed%20Real%20Estate%20Broker%2C%20Four%20Sails%20Real%20Estate.jpg`, `Lauralyn "Laurie" Kazimir`, "LICENSED REAL ESTATE BROKER", "laurie@foursails.vip", true) +
+  fsSignatureCard(`${FS_ASSETS}/Christian%20Kazimir%20%E2%80%93%20Broker%20Associate%2C%20Four%20Sails%20Real%20Estate.jpeg`, "Christian Kazimir", "BROKER ASSOCIATE", "christian@foursails.vip", false) +
+  `</td></tr>`;
+
+function fsFooter(unsubUrl, extra = "") {
+  return `<tr><td style="background-color:#1D3F60; padding:20px 30px; text-align:center;"><p style="color:#ffffff; font-size:13px; margin:0 0 4px 0;">Four Sails Real Estate</p><p style="color:#aaa; font-size:11px; margin:0 0 4px 0;">2100 Constitution Blvd Suite #119, Sarasota, FL 34231</p><p style="color:#aaa; font-size:11px; margin:0 0 12px 0;"><a href="tel:9415002048" style="color:#E3DEC3; text-decoration:none;">941-500-2048</a> &nbsp;|&nbsp; <a href="https://www.foursailsrealestate.com" style="color:#E3DEC3; text-decoration:none;">foursailsrealestate.com</a></p><p style="color:#888; font-size:10px; letter-spacing:1px; margin:0 0 10px 0;">REALTOR&reg; &nbsp;|&nbsp; EQUAL HOUSING OPPORTUNITY</p>${extra}<p style="color:#888; font-size:10px; margin:0;"><a href="${unsubUrl}" style="color:#888; text-decoration:underline;">Unsubscribe</a></p></td></tr>`;
+}
+
+function fsWrap(title, innerRows) {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${title}</title></head><body style="margin:0; padding:0; background-color:#F8F7F3; font-family:Georgia, 'Times New Roman', serif;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#F8F7F3;"><tr><td align="center" style="padding:20px 10px;"><table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff; border-radius:4px; overflow:hidden; max-width:600px; width:100%;">${innerRows}</table></td></tr></table></body></html>`;
+}
+
 function criteriaSummary(c) {
   const bits = [];
   const fmtP = (n) => "$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
@@ -640,7 +665,9 @@ async function handleSaveSearch(request, client, env, cors) {
   const telegramMsg = `\ud83d\udd14 New Saved Search\n${name} (${email})\n${summary}\nAlerts: ${frequency}`;
 
   const unsubUrl = `${SITE_ORIGIN}/unsubscribe?token=${token}`;
-  const confirmationHtml = `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#F8F7F3"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px"><table width="480" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1)"><tr><td style="background:#1D3F60;padding:24px;text-align:center"><img src="https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png" alt="Four Sails Real Estate" height="48" style="filter:brightness(0) invert(1)"><div style="color:#E3DEC3;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-top:8px">Four Sails Real Estate</div></td></tr><tr><td style="background:#ffffff;padding:32px"><h2 style="color:#1D3F60;margin:0 0 16px;font-size:20px">Your Listing Alerts Are Active</h2><p style="color:#374151;line-height:1.7;margin:0 0 12px">Hi ${escHtmlWorker(first_name)}, we saved your search${searchName ? ` <strong>\u201c${escHtmlWorker(searchName)}\u201d</strong>` : ""}:</p><div style="background:#F8F7F3;border-left:4px solid #1D3F60;padding:14px 18px;margin:16px 0;border-radius:0 6px 6px 0"><strong style="color:#1D3F60">${escHtmlWorker(summary)}</strong></div><p style="color:#374151;line-height:1.7;margin:0 0 12px">You'll receive ${FREQUENCY_TEXT[frequency]} whenever new or updated listings match.</p><p style="color:#374151;line-height:1.7;margin:0">Questions? Call us at <a href="tel:+19415002048" style="color:#1D3F60">(941) 500-2048</a> or reply to this email.</p></td></tr><tr><td style="background:#F8F7F3;padding:16px;text-align:center;font-size:11px;color:#9ca3af">&copy; 2026 Four Sails Real Estate &bull; Lauralyn Kazimir, Licensed Real Estate Broker<br><a href="${unsubUrl}" style="color:#9ca3af">Unsubscribe from these alerts</a></td></tr></table></td></tr></table></body></html>`;
+  const confirmationHtml = fsWrap("Your Listing Alerts Are Active", FS_HEADER +
+    `<tr><td style="padding:24px 30px 8px;"><h2 style="color:#1D3F60; margin:0 0 14px; font-size:20px; font-family:Georgia, serif;">Your Listing Alerts Are Active</h2><p style="color:#333; font-size:14px; line-height:1.7; margin:0 0 12px;">Hi ${escHtmlWorker(first_name)}, we saved your search${searchName ? ` <strong>\u201c${escHtmlWorker(searchName)}\u201d</strong>` : ""}:</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;"><tr><td style="background-color:#F8F7F3; border-left:4px solid #1D3F60; padding:14px 18px; border-radius:0 6px 6px 0;"><strong style="color:#1D3F60; font-size:14px;">${escHtmlWorker(summary)}</strong></td></tr></table><p style="color:#333; font-size:14px; line-height:1.7; margin:0 0 12px;">You'll receive ${FREQUENCY_TEXT[frequency]} whenever new or updated listings match.</p><p style="color:#333; font-size:14px; line-height:1.7; margin:0 0 8px;">Questions? Call us at <a href="tel:9415002048" style="color:#1D3F60;">941-500-2048</a> or reply to this email.</p></td></tr>` +
+    FS_DUAL_SIGNATURE + fsFooter(unsubUrl));
 
   const results = await Promise.allSettled([
     // 1. CRM contact (lead capture)
@@ -776,28 +803,34 @@ function buildAlertEmail(s, listings, total) {
   const unsubUrl = `${SITE_ORIGIN}/unsubscribe?token=${s.unsubscribe_token}`;
   const first = (s.subscriber_name || "").split(/\s+/)[0] || "there";
 
-  const cards = listings.map((l) => {
+  const cards = listings.map((l, idx) => {
     const price = l.standardstatus === "Closed" && l.closeprice ? l.closeprice : l.listprice;
     const priceStr = price ? "$" + Number(price).toLocaleString("en-US", { maximumFractionDigits: 0 }) : "\u2014";
     const bits = [];
-    if (l.bedroomstotal != null) bits.push(`${l.bedroomstotal} bd`);
-    if (l.bathroomstotalinteger != null) bits.push(`${l.bathroomstotalinteger} ba`);
-    if (l.livingarea) bits.push(`${Number(l.livingarea).toLocaleString("en-US")} sqft`);
-    if (!l.livingarea && l.lotsizeacres) bits.push(`${Number(l.lotsizeacres).toFixed(2)} ac`);
+    if (l.bedroomstotal != null) bits.push(`${l.bedroomstotal} Beds`);
+    if (l.bathroomstotalinteger != null) bits.push(`${l.bathroomstotalinteger} Baths`);
+    if (l.livingarea) bits.push(`${Number(l.livingarea).toLocaleString("en-US")} SF`);
+    if (!l.livingarea && l.lotsizeacres) bits.push(`${Number(l.lotsizeacres).toFixed(2)} Acres`);
     if (l.yearbuilt) bits.push(`Built ${l.yearbuilt}`);
-    const st = l.standardstatus === "Closed" ? "Sold" : l.standardstatus;
+    const st = l.standardstatus === "Closed" ? "SOLD" : String(l.standardstatus || "").toUpperCase();
     const link = `${SITE_ORIGIN}/listing/${encodeURIComponent(l.listingkey)}`;
     const photo = l.photoscount > 0
-      ? `<img src="https://media.foursailsrealestate.com/photos/${l.listingid}/0.jpg" width="170" height="115" alt="" style="display:block;width:170px;height:115px;object-fit:cover;border-radius:6px;background:#e5e7eb">`
-      : `<table cellpadding="0" cellspacing="0" style="width:170px;height:115px;background:#1D3F60;border-radius:6px"><tr><td align="center" style="color:#E3DEC3;font-size:11px">Photos coming soon</td></tr></table>`;
-    return `<tr><td style="padding:14px 0;border-bottom:1px solid #e5e7eb"><a href="${link}" style="text-decoration:none;color:inherit"><table cellpadding="0" cellspacing="0" width="100%"><tr><td width="182" valign="top">${photo}</td><td valign="top" style="padding-left:8px"><div style="font-size:18px;font-weight:bold;color:#1D3F60">${priceStr} <span style="font-size:10px;color:#c7a94e;font-weight:600;letter-spacing:1px;text-transform:uppercase">${escHtmlWorker(st || "")}</span></div><div style="font-size:14px;color:#374151;margin:4px 0">${escHtmlWorker(l.unparsedaddress || "")}${l.city ? ", " + escHtmlWorker(titleCaseCity(l.city)) : ""}</div><div style="font-size:12px;color:#6b7280">${bits.join(" \u00b7 ")}</div><div style="font-size:12px;color:#1D3F60;margin-top:8px;font-weight:600">View details \u2192</div></td></tr></table></a></td></tr>`;
+      ? `<img src="https://media.foursailsrealestate.com/photos/${l.listingid}/0.jpg" alt="${escHtmlWorker(l.unparsedaddress || "Listing photo")}" width="180" style="width:180px; height:140px; object-fit:cover; display:block;">`
+      : `<table role="presentation" cellpadding="0" cellspacing="0" style="width:180px; height:140px; background-color:#1D3F60;"><tr><td align="center" valign="middle" style="color:#E3DEC3; font-size:11px; font-family:Georgia, serif;">Photos Coming Soon</td></tr></table>`;
+    return `<tr><td style="padding:${idx === 0 ? 12 : 0}px 30px 12px 30px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e8e8; border-radius:6px; overflow:hidden;"><tr><td width="180" valign="top" style="width:180px;"><a href="${link}" style="text-decoration:none;">${photo}</a></td><td valign="top" style="padding:12px 16px;"><p style="margin:0 0 4px; color:#1D3F60; font-size:18px; font-weight:700;">${priceStr} <span style="color:#888; font-size:10px; font-weight:400; letter-spacing:1px;">${st}</span></p><p style="margin:0 0 3px; color:#1D3F60; font-size:13px; font-weight:700;">${escHtmlWorker(l.unparsedaddress || "")}</p><p style="margin:0 0 6px; color:#888; font-size:12px;">${escHtmlWorker(titleCaseCity(l.city))}${l.region === "PR" ? ", PR" : ", FL"}</p><p style="margin:0 0 10px; color:#666; font-size:12px;">${bits.join(" &bull; ")}</p><a href="${link}" style="display:inline-block; background-color:#E3DEC3; color:#1D3F60; padding:8px 20px; text-decoration:none; font-size:12px; font-weight:700; border-radius:3px; letter-spacing:0.5px;">VIEW LISTING</a></td></tr></table></td></tr>`;
   }).join("");
 
   const moreLine = total > listings.length
-    ? `<p style="color:#6b7280;font-size:13px;margin:16px 0 0;text-align:center">\u2026and ${total - listings.length} more matching ${total - listings.length === 1 ? "listing" : "listings"}.</p>`
+    ? `<tr><td style="padding:0 30px 4px; text-align:center;"><p style="color:#888; font-size:12px; margin:0;">\u2026and ${total - listings.length} more matching ${total - listings.length === 1 ? "listing" : "listings"}.</p></td></tr>`
     : "";
 
-  return `<!DOCTYPE html><html><body style="margin:0;padding:0;font-family:Arial,sans-serif;background:#F8F7F3"><table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px"><table width="560" cellpadding="0" cellspacing="0" style="border-radius:8px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.1)"><tr><td style="background:#1D3F60;padding:24px;text-align:center"><img src="https://assets.4sails.net/Logo%20OUtline%20Test%20copy.png" alt="Four Sails Real Estate" height="48" style="filter:brightness(0) invert(1)"><div style="color:#E3DEC3;font-size:11px;letter-spacing:3px;text-transform:uppercase;margin-top:8px">Four Sails Real Estate</div></td></tr><tr><td style="background:#ffffff;padding:28px 32px"><h2 style="color:#1D3F60;margin:0 0 8px;font-size:19px">${total} New ${total === 1 ? "Match" : "Matches"} for Your Search</h2><p style="color:#374151;line-height:1.6;margin:0 0 4px">Hi ${escHtmlWorker(first)}, here's what's new${s.search_name ? ` for <strong>\u201c${escHtmlWorker(s.search_name)}\u201d</strong>` : ""}:</p><p style="color:#6b7280;font-size:12px;margin:0 0 8px">${escHtmlWorker(summary)}</p><table cellpadding="0" cellspacing="0" width="100%">${cards}</table>${moreLine}<div style="text-align:center;margin:24px 0 4px"><a href="${viewAllUrl}" style="display:inline-block;background:#c7a94e;color:#1D3F60;text-decoration:none;padding:13px 28px;border-radius:6px;font-weight:bold">View All Results</a></div></td></tr><tr><td style="background:#F8F7F3;padding:16px;text-align:center;font-size:11px;color:#9ca3af;line-height:1.6">You're receiving ${FREQUENCY_TEXT[s.frequency] || "email alerts"} for this saved search. <a href="${unsubUrl}" style="color:#9ca3af">Unsubscribe</a><br>Listing information &copy; 2026 Stellar MLS as distributed by MLS GRID.<br>&copy; 2026 Four Sails Real Estate &bull; Lauralyn Kazimir, Licensed Real Estate Broker &bull; (941) 500-2048</td></tr></table></td></tr></table></body></html>`;
+  const intro = `<tr><td style="padding:24px 30px 4px;"><h2 style="color:#1D3F60; margin:0 0 8px; font-size:20px; font-family:Georgia, serif;">${total} New ${total === 1 ? "Match" : "Matches"} for Your Search</h2><p style="color:#333; font-size:14px; line-height:1.7; margin:0 0 4px;">Hi ${escHtmlWorker(first)}, here's what's new${s.search_name ? ` for <strong>\u201c${escHtmlWorker(s.search_name)}\u201d</strong>` : ""}:</p><p style="color:#888; font-size:12px; margin:0;">${escHtmlWorker(summary)}</p></td></tr>`;
+
+  const cta = `<tr><td style="padding:12px 30px 24px;"><table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;"><tr><td style="background-color:#1D3F60; border-radius:6px; padding:14px 32px; text-align:center;"><a href="${viewAllUrl}" style="color:#ffffff; text-decoration:none; font-size:14px; font-weight:700; letter-spacing:1px; font-family:Georgia, serif;">VIEW ALL RESULTS</a></td></tr></table></td></tr>`;
+
+  const footerExtra = `<p style="color:#888; font-size:10px; margin:0 0 10px 0;">You're receiving ${FREQUENCY_TEXT[s.frequency] || "email alerts"} for this saved search. Listing information &copy; 2026 Stellar MLS as distributed by MLS GRID.</p>`;
+
+  return fsWrap(alertSubject(s, total), FS_HEADER + intro + cards + moreLine + cta + FS_DUAL_SIGNATURE + fsFooter(unsubUrl, footerExtra));
 }
 
 // ── Mailgun helper ───────────────────────────────────────────────
