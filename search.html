@@ -260,7 +260,7 @@ a{color:var(--navy);text-decoration:none}
 <div class="search-field"><label>Sort</label><select id="fSort"><option value="newest">Newest</option><option value="price_asc">Price ↑</option><option value="price_desc">Price ↓</option><option value="beds">Bedrooms</option><option value="sqft">Largest</option></select></div>
 <div class="search-field"><label>Status</label><select id="fStatus"><option value="Active">Active</option><option value="Pending">Pending</option><option value="Closed">Sold</option><option value="ALL">All</option></select></div>
 </div>
-<div class="search-actions"><button class="btn-search" onclick="doSearch(1)">Search</button><button class="btn-clear" onclick="clearSearch()">Clear All</button></div>
+<div class="search-actions"><button class="btn-search" onclick="doSearch(1)">Search</button><button class="btn-clear" onclick="clearSearch()">Clear All</button><button class="btn-clear" onclick="openSaveSearch()">🔔 Save Search</button></div>
 </div></div>
 <div class="results-header" id="resultsHeader" style="display:none">
 <div class="results-count" id="resultsCount"></div>
@@ -316,6 +316,22 @@ a{color:var(--navy);text-decoration:none}
 <div class="lf-field"><label>Area of Interest *</label><select id="sg-area" required><option value="">Select area…</option><option value="Sarasota">Sarasota</option><option value="Manatee">Manatee</option><option value="Charlotte">Charlotte</option><option value="Lee">Lee</option><option value="Collier">Collier</option><option value="Other">Other</option></select></div>
 <div class="lf-field"><label>Price Range *</label><select id="sg-price" required><option value="">Select range…</option><option value="Under $200K">Under $200K</option><option value="$200K–$400K">$200K–$400K</option><option value="$400K–$600K">$400K–$600K</option><option value="$600K–$1M">$600K–$1M</option><option value="$1M+">$1M+</option></select></div>
 <button type="submit" class="lf-submit" id="signupSubmitBtn">Send Me Listings</button>
+</form>
+</div>
+</div>
+</div>
+<div class="lf-overlay" id="saveSearchModal" onclick="if(event.target===this)closeLeadForm('saveSearchModal')">
+<div class="lf-modal">
+<div class="lf-header"><h2>🔔 Save This Search</h2><button class="lf-close" onclick="closeLeadForm('saveSearchModal')">&times;</button></div>
+<div id="saveSearchFormWrap">
+<form class="lf-body" id="saveSearchForm" onsubmit="submitSaveSearch(event)">
+<div id="saveSearchErr" class="lf-err-msg" style="display:none"></div>
+<div class="lf-field" id="ssCriteriaSummary" style="font-size:.85rem;color:#6b7280"></div>
+<div class="lf-field"><label>Your Name *</label><input type="text" id="ss-name" required placeholder="Jane Smith"></div>
+<div class="lf-field"><label>Email *</label><input type="email" id="ss-email" required placeholder="jane@example.com"></div>
+<div class="lf-field"><label>Name this search (optional)</label><input type="text" id="ss-search-name" placeholder="e.g. Venice waterfront under $600K"></div>
+<div class="lf-field"><label>Email me</label><select id="ss-frequency"><option value="instant">Instantly — as new listings appear</option><option value="daily" selected>Daily digest</option><option value="weekly">Weekly digest (Mondays)</option><option value="monthly">Monthly digest (1st of month)</option></select></div>
+<button type="submit" class="lf-submit" id="saveSearchSubmitBtn">Save &amp; Start Alerts</button>
 </form>
 </div>
 </div>
@@ -526,6 +542,8 @@ function closeLeadForm(id){
     document.getElementById('showingFormWrap').innerHTML='<form class="lf-body" id="showingForm" onsubmit="submitShowing(event)"><div id="showingErr" class="lf-err-msg" style="display:none"></div><div class="lf-field"><label>Your Name *</label><input type="text" id="sf-name" required placeholder="Jane Smith"></div><div class="lf-field"><label>Email *</label><input type="email" id="sf-email" required placeholder="jane@example.com"></div><div class="lf-field"><label>Phone</label><input type="tel" id="sf-phone" placeholder="(941) 555-0100"></div><div style="display:flex;gap:12px"><div class="lf-field" style="flex:1"><label>Preferred Date *</label><input type="date" id="sf-date" required></div><div class="lf-field" style="flex:1"><label>Preferred Time *</label><select id="sf-time" required><option value="">Select…</option><option value="Morning (9am–12pm)">Morning (9am–12pm)</option><option value="Afternoon (12pm–5pm)">Afternoon (12pm–5pm)</option><option value="Evening (5pm–7pm)">Evening (5pm–7pm)</option></select></div></div><div class="lf-field"><label>Message (optional)</label><textarea id="sf-msg" placeholder="Any questions or special requests?"></textarea></div><button type="submit" class="lf-submit" id="showingSubmitBtn">Request Showing</button></form>';
   } else if(id==='signupModal'){
     document.getElementById('signupFormWrap').innerHTML='<form class="lf-body" id="signupForm" onsubmit="submitSignup(event)"><div id="signupErr" class="lf-err-msg" style="display:none"></div><div class="lf-field"><label>Your Name *</label><input type="text" id="sg-name" required placeholder="Jane Smith"></div><div class="lf-field"><label>Email *</label><input type="email" id="sg-email" required placeholder="jane@example.com"></div><div class="lf-field"><label>Area of Interest *</label><select id="sg-area" required><option value="">Select area…</option><option value="Sarasota">Sarasota</option><option value="Manatee">Manatee</option><option value="Charlotte">Charlotte</option><option value="Lee">Lee</option><option value="Collier">Collier</option><option value="Other">Other</option></select></div><div class="lf-field"><label>Price Range *</label><select id="sg-price" required><option value="">Select range…</option><option value="Under $200K">Under $200K</option><option value="$200K–$400K">$200K–$400K</option><option value="$400K–$600K">$400K–$600K</option><option value="$600K–$1M">$600K–$1M</option><option value="$1M+">$1M+</option></select></div><button type="submit" class="lf-submit" id="signupSubmitBtn">Send Me Listings</button></form>';
+  } else if(id==='saveSearchModal'){
+    document.getElementById('saveSearchFormWrap').innerHTML='<form class="lf-body" id="saveSearchForm" onsubmit="submitSaveSearch(event)"><div id="saveSearchErr" class="lf-err-msg" style="display:none"></div><div class="lf-field" id="ssCriteriaSummary" style="font-size:.85rem;color:#6b7280"></div><div class="lf-field"><label>Your Name *</label><input type="text" id="ss-name" required placeholder="Jane Smith"></div><div class="lf-field"><label>Email *</label><input type="email" id="ss-email" required placeholder="jane@example.com"></div><div class="lf-field"><label>Name this search (optional)</label><input type="text" id="ss-search-name" placeholder="e.g. Venice waterfront under $600K"></div><div class="lf-field"><label>Email me</label><select id="ss-frequency"><option value="instant">Instantly — as new listings appear</option><option value="daily" selected>Daily digest</option><option value="weekly">Weekly digest (Mondays)</option><option value="monthly">Monthly digest (1st of month)</option></select></div><button type="submit" class="lf-submit" id="saveSearchSubmitBtn">Save &amp; Start Alerts</button></form>';
   }
 }
 
@@ -533,6 +551,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(document.getElementById('showingModal').classList.contains('open'))closeLeadForm('showingModal');
     else if(document.getElementById('signupModal').classList.contains('open'))closeLeadForm('signupModal');
+    else if(document.getElementById('saveSearchModal').classList.contains('open'))closeLeadForm('saveSearchModal');
   }
 });
 
@@ -585,6 +604,58 @@ async function submitSignup(e){
     errEl.textContent='Something went wrong: '+(err.message||'please try again.');
     errEl.style.display='block';
     btn.disabled=false;btn.textContent='Send Me Listings';
+  }
+}
+
+// ── Save Search (email alerts) ────────────────────────────
+function summarizeParams(p){
+  const bits=[];
+  if(p.region==='PR')bits.push('Puerto Rico');
+  if(p.county)bits.push(p.county.split(',').join(', '));
+  if(p.city)bits.push(titleCase(p.city));
+  if(p.zip)bits.push('ZIP '+p.zip);
+  if(p.property_subtype)bits.push(p.property_subtype.split(',').join(', '));
+  if(p.min_price&&p.max_price)bits.push(fmtPrice(p.min_price)+'–'+fmtPrice(p.max_price));
+  else if(p.min_price)bits.push(fmtPrice(p.min_price)+'+');
+  else if(p.max_price)bits.push('Under '+fmtPrice(p.max_price));
+  if(p.min_beds)bits.push(p.min_beds+'+ bd');
+  if(p.min_baths)bits.push(p.min_baths+'+ ba');
+  if(p.waterfront==='1')bits.push('Waterfront');
+  if(p.pool==='1')bits.push('Pool');
+  if(p.new_construction==='1')bits.push('New Construction');
+  if(p.no_hoa==='1')bits.push('No HOA');
+  if(p.status&&p.status!=='Active'&&p.status!=='ALL')bits.push(statusLabel(p.status));
+  return bits.join(' · ')||'All residential listings';
+}
+function openSaveSearch(){
+  const p=getParams();
+  const el=document.getElementById('ssCriteriaSummary');
+  if(el)el.innerHTML='<strong style="color:var(--navy,#1D3F60)">Current search:</strong> '+escHtml(summarizeParams(p));
+  document.getElementById('saveSearchModal').classList.add('open');
+}
+async function submitSaveSearch(e){
+  e.preventDefault();
+  const btn=document.getElementById('saveSearchSubmitBtn');
+  const errEl=document.getElementById('saveSearchErr');
+  errEl.style.display='none';btn.disabled=true;btn.textContent='Saving…';
+  const params=getParams();
+  const criteria={};Object.entries(params).forEach(([k,v])=>{if(v&&k!=='sort')criteria[k]=v});
+  const payload={
+    name:document.getElementById('ss-name').value.trim(),
+    email:document.getElementById('ss-email').value.trim(),
+    search_name:document.getElementById('ss-search-name').value.trim(),
+    frequency:document.getElementById('ss-frequency').value,
+    criteria
+  };
+  try{
+    const r=await fetch(API+'/saved-searches',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Request failed');
+    document.getElementById('saveSearchFormWrap').innerHTML='<div class="lf-success"><div class="lf-check">✅</div><h3>Search Saved!</h3><p>Check your email for a confirmation. We\'ll alert you when new listings match your search.</p></div>';
+  }catch(err){
+    errEl.textContent='Something went wrong: '+(err.message||'please try again.');
+    errEl.style.display='block';
+    btn.disabled=false;btn.textContent='Save & Start Alerts';
   }
 }
 

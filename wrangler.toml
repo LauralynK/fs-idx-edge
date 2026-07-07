@@ -10,6 +10,11 @@ id = "95d21fb829ce4edfbd0a68484e3240fd"
 [vars]
 R2_PUBLIC_URL = "https://media.foursailsrealestate.com"
 
+# Saved-search email alerts: instant searches checked every run;
+# daily ~9 AM ET, weekly Monday, monthly 1st (gating logic in worker).
+[triggers]
+crons = ["*/15 * * * *"]
+
 [[rules]]
 type = "Text"
 globs = ["**/*.html"]
