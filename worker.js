@@ -76,7 +76,14 @@ export default {
         return await handleStats(client, corsHeaders);
       }
       if (path === "/api/health") {
-        return jsonResponse({ status: "ok", edge: true, db: "neon" }, corsHeaders);
+        return jsonResponse({
+          status: "ok", edge: true, db: "neon",
+          // Presence booleans only — helps diagnose silent lead-form/alert failures
+          secrets: {
+            mailgun: !!env.MAILGUN_API_KEY,
+            telegram: !!env.TELEGRAM_BOT_TOKEN,
+          },
+        }, corsHeaders);
       }
       if (path === "/" || path === "/index.html") {
         return new Response(SEARCH_HTML, {
