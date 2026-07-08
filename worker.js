@@ -153,7 +153,7 @@ export default {
       }
       if (path === "/" || path === "/index.html") {
         return new Response(SEARCH_HTML, {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", ...corsHeaders },
         });
       }
       // Shareable listing links (2026-07-06): /listing/:key opens the detail
@@ -189,7 +189,7 @@ export default {
           (l.region === "PR" ? "<script>window.__PR_MODE__=true</script>" : "") +
           `<script>window.__OPEN_LISTING__=${JSON.stringify(rawKey)}</script></head>`;
         return new Response(SEARCH_HTML.replace("</head>", inject), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", ...corsHeaders },
         });
       }
       // Personal Puerto Rico search (2026-07-06) — same UI in PR mode, noindex
@@ -201,6 +201,7 @@ export default {
         return new Response(prHtml, {
           headers: {
             "Content-Type": "text/html; charset=utf-8",
+            "Cache-Control": "no-cache",
             "X-Robots-Tag": "noindex, nofollow",
             ...corsHeaders,
           },
@@ -218,7 +219,7 @@ export default {
         const inject =
           `<script>window.__AREA__=${JSON.stringify({ slug: areaMatch[1], name: a.name })}</script></head>`;
         return new Response(SEARCH_HTML.replace("</head>", inject), {
-          headers: { "Content-Type": "text/html; charset=utf-8", ...corsHeaders },
+          headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", ...corsHeaders },
         });
       }
       return new Response("Not Found", { status: 404 });
@@ -322,6 +323,16 @@ function buildListingFilters(q) {
   const soldBefore = q.get("sold_before");
   if (soldBefore && /^\d{4}-\d{2}-\d{2}$/.test(soldBefore)) {
     where.push(`closedate <= ${p()}`); params.push(soldBefore);
+  }
+
+  // Pending date range — filters on the date it went under contract
+  const pendingAfter = q.get("pending_after");
+  if (pendingAfter && /^\d{4}-\d{2}-\d{2}$/.test(pendingAfter)) {
+    where.push(`purchasecontractdate >= ${p()}`); params.push(pendingAfter);
+  }
+  const pendingBefore = q.get("pending_before");
+  if (pendingBefore && /^\d{4}-\d{2}-\d{2}$/.test(pendingBefore)) {
+    where.push(`purchasecontractdate <= ${p()}`); params.push(pendingBefore);
   }
 
   // Price range
@@ -448,7 +459,7 @@ async function handleSearch(q, client, env, cors) {
                       daysonmarket::int)
       ELSE current_date - listingcontractdate::date
     END)::text AS daysonmarket,
-    onmarketdate, listingcontractdate, modificationtimestamp, latitude, longitude,
+    onmarketdate, listingcontractdate, purchasecontractdate, modificationtimestamp, latitude, longitude,
     subdivisionname, listagentfullname, listofficename,
     newconstructionyn, garageyn, furnished, seniorcommunityyn, associationyn,
     closeprice, closedate`;
@@ -739,7 +750,7 @@ const CRITERIA_KEYS = [
   "min_sqft", "max_sqft", "min_lot", "max_lot", "min_year", "max_year",
   "property_type", "property_subtype", "waterfront", "waterfront_type", "pool",
   "new_construction", "garage", "furnished", "water_view", "no_hoa", "senior", "status",
-  "sold_after", "sold_before",
+  "sold_after", "sold_before", "pending_after", "pending_before",
 ];
 
 function genToken() {
