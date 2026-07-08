@@ -258,7 +258,9 @@ a{color:var(--navy);text-decoration:none}
 <div class="search-field"><label>Max Lot</label><select id="fMaxLot"><option value="">Any</option><option value="0.5">½ ac</option><option value="1">1 ac</option><option value="2">2 ac</option><option value="5">5 ac</option><option value="10">10 ac</option><option value="20">20 ac</option></select></div>
 <div class="search-field"><label>Year Built</label><select id="fMinYear"><option value="">Any</option><option value="2024">2024+</option><option value="2020">2020+</option><option value="2010">2010+</option><option value="2000">2000+</option><option value="1990">1990+</option><option value="1980">1980+</option><option value="1970">1970+</option></select></div>
 <div class="search-field"><label>Sort</label><select id="fSort"><option value="newest">Newest</option><option value="price_asc">Price ↑</option><option value="price_desc">Price ↓</option><option value="beds">Bedrooms</option><option value="sqft">Largest</option></select></div>
-<div class="search-field"><label>Status</label><select id="fStatus"><option value="Active">Active</option><option value="Pending">Pending</option><option value="Closed">Sold</option><option value="ALL">All</option></select></div>
+<div class="search-field"><label>Status</label><select id="fStatus" onchange="toggleSoldDates()"><option value="Active">Active</option><option value="Pending">Pending</option><option value="Closed">Sold</option><option value="ALL">All</option></select></div>
+<div class="search-field" id="fSoldFromWrap" style="display:none"><label>Sold From</label><input type="date" id="fSoldFrom"></div>
+<div class="search-field" id="fSoldToWrap" style="display:none"><label>Sold To</label><input type="date" id="fSoldTo"></div>
 </div>
 <div class="search-actions"><button class="btn-search" onclick="doSearch(1)">Search</button><button class="btn-clear" onclick="clearSearch()">Clear All</button><button class="btn-clear" onclick="openSaveSearch()">🔔 Save Search</button></div>
 </div></div>
@@ -420,8 +422,16 @@ max_lot:document.getElementById('fMaxLot').value,
 max_sqft:document.getElementById('fMaxSqft').value,
 min_year:document.getElementById('fMinYear').value,
 sort:document.getElementById('fSort').value,
-status:document.getElementById('fStatus').value
+status:document.getElementById('fStatus').value,
+sold_after:document.getElementById('fStatus').value==='Closed'?document.getElementById('fSoldFrom').value:'',
+sold_before:document.getElementById('fStatus').value==='Closed'?document.getElementById('fSoldTo').value:''
 }}
+
+function toggleSoldDates(){
+const sold=document.getElementById('fStatus').value==='Closed';
+document.getElementById('fSoldFromWrap').style.display=sold?'':'none';
+document.getElementById('fSoldToWrap').style.display=sold?'':'none';
+}
 
 function setForm(p){
 document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
@@ -448,6 +458,9 @@ document.getElementById('fMaxLot').value=p.max_lot||'';
 document.getElementById('fMinYear').value=p.min_year||'';
 document.getElementById('fSort').value=p.sort||'newest';
 document.getElementById('fStatus').value=p.status||'Active';
+document.getElementById('fSoldFrom').value=p.sold_after||'';
+document.getElementById('fSoldTo').value=p.sold_before||'';
+toggleSoldDates();
 }
 
 function saveHash(params,page){const p={...params,page:page>1?page:undefined};const h=Object.entries(p).filter(([,v])=>v).map(([k,v])=>k+'='+encodeURIComponent(v)).join('&');history.replaceState(null,'',h?'#'+h:location.pathname)}
@@ -525,6 +538,8 @@ document.getElementById('fMinSqft').value='';document.getElementById('fMaxSqft')
 document.getElementById('fMinLot').value='';document.getElementById('fMaxLot').value='';
 document.getElementById('fMinYear').value='';
 document.getElementById('fSort').value='newest';document.getElementById('fStatus').value='Active';
+document.getElementById('fSoldFrom').value='';document.getElementById('fSoldTo').value='';
+toggleSoldDates();
 doSearch(1)}
 
 document.getElementById('fCity').addEventListener('keydown',e=>{if(e.key==='Enter')doSearch(1)});

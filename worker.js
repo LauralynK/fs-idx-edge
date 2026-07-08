@@ -10,9 +10,17 @@ import SEARCH_HTML from "./search.html";
 import pg from 'pg';
 const { Client } = pg;
 
+// Status-aware "relevant date": Closed → sold date, Pending → date it went
+// under contract, Active (and fallbacks) → list date. Used by newest/oldest
+// sorts so pendings order by pending date and solds by sold date (2026-07-08).
+const STATUS_DATE_SQL = `COALESCE(
+  CASE WHEN standardstatus = 'Closed' THEN closedate::date
+       WHEN standardstatus = 'Pending' THEN purchasecontractdate::date
+  END, listingcontractdate::date)`;
+
 const VALID_SORTS = {
-  newest: "listingcontractdate DESC NULLS LAST",
-  oldest: "listingcontractdate ASC NULLS LAST",
+  newest: `${STATUS_DATE_SQL} DESC NULLS LAST`,
+  oldest: `${STATUS_DATE_SQL} ASC NULLS LAST`,
   price_high: "listprice DESC NULLS LAST",
   price_low: "listprice ASC NULLS LAST",
   price_desc: "listprice DESC NULLS LAST",
@@ -306,6 +314,16 @@ function buildListingFilters(q) {
     if (clean) { where.push(`postalcode = ${p()}`); params.push(clean); }
   }
 
+  // Sold date range (from/to, YYYY-MM-DD) — only meaningful with Closed
+  const soldAfter = q.get("sold_after");
+  if (soldAfter && /^\d{4}-\d{2}-\d{2}$/.test(soldAfter)) {
+    where.push(`closedate >= ${p()}`); params.push(soldAfter);
+  }
+  const soldBefore = q.get("sold_before");
+  if (soldBefore && /^\d{4}-\d{2}-\d{2}$/.test(soldBefore)) {
+    where.push(`closedate <= ${p()}`); params.push(soldBefore);
+  }
+
   // Price range
   const minPrice = parseFloat(q.get("min_price"));
   if (!isNaN(minPrice)) { where.push(`listprice >= ${p()}`); params.push(minPrice); }
@@ -423,7 +441,13 @@ async function handleSearch(q, client, env, cors) {
     listprice, mfr_currentprice, unparsedaddress, city, stateorprovince, postalcode,
     countyorparish, bedroomstotal, bathroomstotalinteger, bathroomsfull, bathroomshalf,
     livingarea, lotsizeacres, yearbuilt, garagespaces, poolprivateyn, waterfrontyn,
-    mfr_wateraccessyn, mfr_waterviewyn, waterfrontfeatures, photoscount, daysonmarket,
+    mfr_wateraccessyn, mfr_waterviewyn, waterfrontfeatures, photoscount,
+    GREATEST(0, CASE
+      WHEN standardstatus IN ('Pending','Closed')
+        THEN COALESCE(purchasecontractdate::date - listingcontractdate::date,
+                      daysonmarket::int)
+      ELSE current_date - listingcontractdate::date
+    END)::text AS daysonmarket,
     onmarketdate, listingcontractdate, modificationtimestamp, latitude, longitude,
     subdivisionname, listagentfullname, listofficename,
     newconstructionyn, garageyn, furnished, seniorcommunityyn, associationyn,
@@ -529,6 +553,21 @@ async function handleDetail(key, client, env, cors) {
   );
   const row = result.rows[0];
   if (!row) return jsonResponse({ error: "Not found" }, cors, 404);
+
+  // Live DOM (stored MLS daysonmarket is a stale snapshot — avg ~84 days
+  // behind for actives). Active counts to today; Pending/Closed freeze at
+  // the contract date (fallback: close date). 2026-07-08.
+  if (row.listingcontractdate) {
+    const lcd = new Date(row.listingcontractdate);
+    const frozen = row.standardstatus === "Pending" || row.standardstatus === "Closed";
+    // Frozen statuses without a contract date keep the stored snapshot
+    // (it froze when the listing went under contract — accurate there).
+    if (!frozen || row.purchasecontractdate) {
+      const end = frozen ? new Date(row.purchasecontractdate) : new Date();
+      const d = Math.round((end - lcd) / 86400000);
+      if (Number.isFinite(d)) row.daysonmarket = String(Math.max(0, d));
+    }
+  }
 
   // Construct photo URLs from standard path — no media table query needed
   const photoCount = row.photoscount || 0;
@@ -700,6 +739,7 @@ const CRITERIA_KEYS = [
   "min_sqft", "max_sqft", "min_lot", "max_lot", "min_year", "max_year",
   "property_type", "property_subtype", "waterfront", "waterfront_type", "pool",
   "new_construction", "garage", "furnished", "water_view", "no_hoa", "senior", "status",
+  "sold_after", "sold_before",
 ];
 
 function genToken() {
@@ -1098,7 +1138,8 @@ h1,h2,h3{font-family:'Marcellus',Georgia,serif;color:var(--navy);line-height:1.2
         <div class="listing-specs">
           <span><strong>6</strong> Beds</span><span class="spec-div"></span>
           <span><strong>11</strong> Baths</span><span class="spec-div"></span>
-          <span><strong>12,789</strong> Sq Ft</span>
+          <span><strong>12,789</strong> Sq Ft</span><span class="spec-div"></span>
+          <span><strong>302</strong> DOM</span>
         </div>
         <div class="listing-type">Single Family Residence</div>
       </div>
@@ -1117,7 +1158,8 @@ h1,h2,h3{font-family:'Marcellus',Georgia,serif;color:var(--navy);line-height:1.2
         <div class="listing-specs">
           <span><strong>3</strong> Beds</span><span class="spec-div"></span>
           <span><strong>2</strong> Baths</span><span class="spec-div"></span>
-          <span><strong>1,799</strong> Sq Ft</span>
+          <span><strong>1,799</strong> Sq Ft</span><span class="spec-div"></span>
+          <span><strong>89</strong> DOM</span>
         </div>
         <div class="listing-type">Single Family Residence</div>
       </div>
@@ -1136,7 +1178,8 @@ h1,h2,h3{font-family:'Marcellus',Georgia,serif;color:var(--navy);line-height:1.2
         <div class="listing-specs">
           <span><strong>3</strong> Beds</span><span class="spec-div"></span>
           <span><strong>4</strong> Baths</span><span class="spec-div"></span>
-          <span><strong>2,211</strong> Sq Ft</span>
+          <span><strong>2,211</strong> Sq Ft</span><span class="spec-div"></span>
+          <span><strong>197</strong> DOM</span>
         </div>
         <div class="listing-type">Single Family Residence</div>
       </div>
@@ -1155,7 +1198,8 @@ h1,h2,h3{font-family:'Marcellus',Georgia,serif;color:var(--navy);line-height:1.2
         <div class="listing-specs">
           <span><strong>3</strong> Beds</span><span class="spec-div"></span>
           <span><strong>4</strong> Baths</span><span class="spec-div"></span>
-          <span><strong>3,029</strong> Sq Ft</span>
+          <span><strong>3,029</strong> Sq Ft</span><span class="spec-div"></span>
+          <span><strong>181</strong> DOM</span>
         </div>
         <div class="listing-type">Condominium</div>
       </div>
@@ -1174,7 +1218,8 @@ h1,h2,h3{font-family:'Marcellus',Georgia,serif;color:var(--navy);line-height:1.2
         <div class="listing-specs">
           <span><strong>3</strong> Beds</span><span class="spec-div"></span>
           <span><strong>3</strong> Baths</span><span class="spec-div"></span>
-          <span><strong>1,854</strong> Sq Ft</span>
+          <span><strong>1,854</strong> Sq Ft</span><span class="spec-div"></span>
+          <span><strong>144</strong> DOM</span>
         </div>
         <div class="listing-type">Single Family Residence</div>
       </div>
@@ -1193,7 +1238,8 @@ h1,h2,h3{font-family:'Marcellus',Georgia,serif;color:var(--navy);line-height:1.2
         <div class="listing-specs">
           <span><strong>3</strong> Beds</span><span class="spec-div"></span>
           <span><strong>3</strong> Baths</span><span class="spec-div"></span>
-          <span><strong>2,209</strong> Sq Ft</span>
+          <span><strong>2,209</strong> Sq Ft</span><span class="spec-div"></span>
+          <span><strong>158</strong> DOM</span>
         </div>
         <div class="listing-type">Single Family Residence</div>
       </div>
