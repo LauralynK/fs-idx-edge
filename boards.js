@@ -66,17 +66,19 @@ let cachedSecret = null;
 
 async function getSessionSecret(client) {
   if (cachedSecret) return cachedSecret;
-  let r = await client.query("SELECT value FROM app_config WHERE key = 'session_secret'");
-  if (r.rows.length === 0) {
-    const bytes = new Uint8Array(32);
-    crypto.getRandomValues(bytes);
-    const secret = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-    await client.query(
-      "INSERT INTO app_config (key, value) VALUES ('session_secret', $1) ON CONFLICT (key) DO NOTHING",
-      [secret]
-    );
-    r = await client.query("SELECT value FROM app_config WHERE key = 'session_secret'");
-  }
+  // Single atomic upsert-with-RETURNING: returns the existing secret if one
+  // is already stored, else persists our candidate. Write queries bypass
+  // Hyperdrive's SELECT cache (a plain re-SELECT after INSERT can serve a
+  // stale empty result — bit us on first deploy, 2026-07-09).
+  const bytes = new Uint8Array(32);
+  crypto.getRandomValues(bytes);
+  const candidate = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+  const r = await client.query(
+    `INSERT INTO app_config (key, value) VALUES ('session_secret', $1)
+     ON CONFLICT (key) DO UPDATE SET value = app_config.value
+     RETURNING value`,
+    [candidate]
+  );
   cachedSecret = r.rows[0].value;
   return cachedSecret;
 }
