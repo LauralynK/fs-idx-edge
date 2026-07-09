@@ -98,6 +98,21 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // ── Legacy IDX Broker URL patterns ──────────────────────
+    // search.foursailsrealestate.com carried IDX Broker for years — old
+    // Google results, emails, and bookmarks use /idx/* paths. When DNS
+    // repoints that host at this worker, land those links somewhere useful.
+    if (path.startsWith("/idx/") || path === "/idx") {
+      // Detail pages → native /mls/:id on the main site
+      // e.g. /idx/details/listing/d003/N6142960[/slug...]
+      const detail = path.match(/^\/idx\/details\/listing\/[^/]+\/([A-Za-z0-9]+)/);
+      if (detail) {
+        return Response.redirect(`https://www.foursailsrealestate.com/mls/${detail[1]}`, 301);
+      }
+      // Everything else (search forms, results, saved links) → our search
+      return Response.redirect(url.origin + "/", 301);
+    }
+
     // ── Lead capture routes (no DB needed) ──────────────────────
     if (request.method === "POST" && path === "/api/showing-request") {
       return await handleShowingRequest(request, env, corsHeaders);
