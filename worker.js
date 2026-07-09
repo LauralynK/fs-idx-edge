@@ -7,6 +7,7 @@
  */
 
 import SEARCH_HTML from "./search.html";
+import { handleBoardsRoute, isBoardsPath, boardsCors } from "./boards.js";
 import pg from 'pg';
 const { Client } = pg;
 
@@ -95,6 +96,10 @@ export default {
       "Access-Control-Allow-Headers": "Content-Type",
     };
     if (request.method === "OPTIONS") {
+      // Life Boards routes use cookies → credentialed CORS (specific origin)
+      if (isBoardsPath(path)) {
+        return new Response(null, { headers: boardsCors(request) });
+      }
       return new Response(null, { headers: corsHeaders });
     }
 
@@ -127,6 +132,14 @@ export default {
 
     try {
       await client.connect();
+
+      // ── Four Sails Life Boards: auth + saved homes + events (2026-07-09) ──
+      if (isBoardsPath(path)) {
+        const boardsResp = await handleBoardsRoute(request, url, path, client, env, {
+          jsonResponse, genToken, sendMailgun, fsWrap, FS_HEADER, escHtmlWorker,
+        });
+        if (boardsResp) return boardsResp;
+      }
 
       if (request.method === "POST" && path === "/api/saved-searches") {
         return await handleSaveSearch(request, client, env, corsHeaders);
