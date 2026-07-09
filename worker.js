@@ -129,6 +129,9 @@ export default {
       if (path === "/api/stats") {
         return await handleStats(client, corsHeaders);
       }
+      if (path === "/sitemap-fsre-mls.xml") {
+        return await handleFsreMlsSitemap(client);
+      }
       if (path === "/api/health") {
         return jsonResponse({
           status: "ok", edge: true, db: "neon",
@@ -547,8 +550,11 @@ ${r.rows.length ? `<div class="wgrid">${cards}</div>` : `<div class="wempty">No 
 async function handleDetail(key, client, env, cors) {
   const clean = key.replace(/[^a-zA-Z0-9_-]/g, "");
 
+  // Accept listingkey (MFR791981820), full listingid (MFRN6144518), or a
+  // bare MLS number (N6144518 — used by native /mls/:id pages on the main site).
+  const mlsId = clean.startsWith("MFR") ? clean : "MFR" + clean;
   const result = await client.query(
-    "SELECT * FROM listings WHERE listingkey = $1", [clean]
+    "SELECT * FROM listings WHERE listingkey = $1 OR listingid = $2 LIMIT 1", [clean, mlsId]
   );
   const row = result.rows[0];
   if (!row) return jsonResponse({ error: "Not found" }, cors, 404);
@@ -581,6 +587,35 @@ async function handleDetail(key, client, env, cors) {
 }
 
 // ── Stats ───────────────────────────────────────────────────────
+
+// Cross-host sitemap for the native /mls/:id listing pages on
+// foursailsrealestate.com (declared via Sitemap: line in that host's
+// robots.txt — Google accepts cross-host sitemaps declared there).
+// Active + Pending sellable inventory; Closed pages exist but aren't fed
+// to crawlers (they churn out of the feed on MlgCanView purges).
+async function handleFsreMlsSitemap(client) {
+  const result = await client.query(
+    `SELECT listingid, modificationtimestamp FROM listings
+     WHERE mlgcanview = true AND standardstatus IN ('Active','Pending')
+       AND propertytype IN ('Residential','Land')
+     ORDER BY listingid`
+  );
+  const urls = result.rows.map((r) => {
+    const id = String(r.listingid || "").replace(/^MFR/, "");
+    if (!id) return "";
+    const mod = r.modificationtimestamp
+      ? `<lastmod>${new Date(r.modificationtimestamp).toISOString().slice(0, 10)}</lastmod>`
+      : "";
+    return `<url><loc>https://www.foursailsrealestate.com/mls/${id}</loc>${mod}</url>`;
+  }).join("");
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls}</urlset>`;
+  return new Response(xml, {
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=21600",
+    },
+  });
+}
 
 async function handleStats(client, cors) {
   const [statusRes, citiesRes, typesRes, syncRes, totalRes] = await Promise.all([
