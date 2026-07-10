@@ -146,7 +146,7 @@ export async function getSessionUser(request, client) {
  */
 function nonce() {
   return crypto.randomUUID();
-}──────
+}
 
 function safeReturnUrl(raw) {
   if (!raw) return DEFAULT_RETURN;
