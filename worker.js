@@ -158,7 +158,26 @@ export default {
         return await handleStats(client, corsHeaders);
       }
       if (path === "/sitemap-fsre-mls.xml") {
-        return await handleFsreMlsSitemap(client);
+        return await handleFsreMlsSitemapIndex(client);
+      }
+      {
+        const chunkMatch = path.match(/^\/sitemap-fsre-mls-(\d+)\.xml$/);
+        if (chunkMatch) {
+          return await handleFsreMlsSitemapChunk(client, parseInt(chunkMatch[1], 10));
+        }
+      }
+      if (path === "/robots.txt") {
+        return new Response(
+          [
+            "# robots.txt \u2014 Four Sails Real Estate custom IDX (search.foursailsrealestate.com)",
+            "User-agent: *",
+            "Allow: /",
+            "",
+            "Sitemap: https://search.foursailsrealestate.com/sitemap-fsre-mls.xml",
+            "",
+          ].join("\n"),
+          { headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=86400" } }
+        );
       }
       if (path === "/api/health") {
         return jsonResponse({
@@ -616,18 +635,46 @@ async function handleDetail(key, client, env, cors) {
 
 // ── Stats ───────────────────────────────────────────────────────
 
-// Cross-host sitemap for the native /mls/:id listing pages on
+// Cross-host sitemaps for the native /mls/:id listing pages on
 // foursailsrealestate.com (declared via Sitemap: line in that host's
 // robots.txt — Google accepts cross-host sitemaps declared there).
-// Active + Pending sellable inventory; Closed pages exist but aren't fed
-// to crawlers (they churn out of the feed on MlgCanView purges).
-async function handleFsreMlsSitemap(client) {
+// Inventory: Active + Pending + Closed within the last 12 months
+// (recent solds are authority/SEO content per Laurie 2026-07-10; older
+// closes churn out via MlgCanView purges and age out of the window).
+// Total exceeds the 50K-URL per-file limit, so this is a sitemap INDEX
+// pointing at chunked child sitemaps of ≤40K URLs each.
+const SITEMAP_WHERE = `mlgcanview = true AND propertytype IN ('Residential','Land')
+       AND (standardstatus IN ('Active','Pending')
+            OR (standardstatus = 'Closed' AND closedate >= now() - interval '12 months'))`;
+const SITEMAP_CHUNK = 40000;
+
+async function handleFsreMlsSitemapIndex(client) {
+  const result = await client.query(`SELECT COUNT(*)::int AS n FROM listings WHERE ${SITEMAP_WHERE}`);
+  const total = result.rows[0]?.n || 0;
+  const chunks = Math.max(1, Math.ceil(total / SITEMAP_CHUNK));
+  const today = new Date().toISOString().slice(0, 10);
+  let entries = "";
+  for (let i = 1; i <= chunks; i++) {
+    entries += `<sitemap><loc>https://search.foursailsrealestate.com/sitemap-fsre-mls-${i}.xml</loc><lastmod>${today}</lastmod></sitemap>`;
+  }
+  const xml = `<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${entries}</sitemapindex>`;
+  return new Response(xml, {
+    headers: {
+      "Content-Type": "application/xml; charset=utf-8",
+      "Cache-Control": "public, max-age=21600",
+    },
+  });
+}
+
+async function handleFsreMlsSitemapChunk(client, chunkNum) {
+  if (!chunkNum || chunkNum < 1 || chunkNum > 50) return new Response("Not found", { status: 404 });
   const result = await client.query(
     `SELECT listingid, modificationtimestamp FROM listings
-     WHERE mlgcanview = true AND standardstatus IN ('Active','Pending')
-       AND propertytype IN ('Residential','Land')
-     ORDER BY listingid`
+     WHERE ${SITEMAP_WHERE}
+     ORDER BY listingid
+     LIMIT ${SITEMAP_CHUNK} OFFSET ${(chunkNum - 1) * SITEMAP_CHUNK}`
   );
+  if (result.rows.length === 0) return new Response("Not found", { status: 404 });
   const urls = result.rows.map((r) => {
     const id = String(r.listingid || "").replace(/^MFR/, "");
     if (!id) return "";
