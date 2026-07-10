@@ -134,7 +134,17 @@ export async function getSessionUser(request, client) {
   return r.rows[0] || null;
 }
 
-// ── Helpers ─────────────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────
+
+/**
+ * Cache-bust a SELECT: Hyperdrive keys its ~60s query cache on the SQL text,
+ * so a unique comment forces a fresh read. Used for board reads that must
+ * reflect a save the user just made (stale cache = "I saved a home and my
+ * board is empty"). Boards traffic is light; the extra DB roundtrips are fine.
+ */
+function fresh(sql) {
+  return `/* ${crypto.randomUUID()} */ ${sql}`;
+}──────
 
 function safeReturnUrl(raw) {
   if (!raw) return DEFAULT_RETURN;
@@ -168,11 +178,11 @@ const ITEM_LISTING_COLS = `l.listingkey, l.listingid, l.unparsedaddress, l.city,
 
 async function boardItemsWithListings(client, boardId) {
   const r = await client.query(
-    `SELECT bi.listing_key, bi.note, bi.created_at AS saved_at, ${ITEM_LISTING_COLS}
+    fresh(`SELECT bi.listing_key, bi.note, bi.created_at AS saved_at, ${ITEM_LISTING_COLS}
      FROM board_items bi
      LEFT JOIN listings l ON l.listingkey = bi.listing_key AND l.mlgcanview = true
      WHERE bi.board_id = $1
-     ORDER BY bi.created_at DESC`, [boardId]);
+     ORDER BY bi.created_at DESC`), [boardId]);
   return r.rows;
 }
 
@@ -230,8 +240,8 @@ export async function handleBoardsRoute(request, url, path, client, env, deps) {
 
   if (request.method === "GET" && path === "/api/me") {
     const board = await ensureBoard(client, user.id);
-    const c = await client.query("SELECT count(*)::int AS n FROM board_items WHERE board_id = $1", [board.id]);
-    const keys = await client.query("SELECT listing_key FROM board_items WHERE board_id = $1", [board.id]);
+    const c = await client.query(fresh("SELECT count(*)::int AS n FROM board_items WHERE board_id = $1"), [board.id]);
+    const keys = await client.query(fresh("SELECT listing_key FROM board_items WHERE board_id = $1"), [board.id]);
     return jsonResponse({
       user: { id: user.id, email: user.email, name: user.name },
       board: { id: board.id, name: board.name, share_token: board.share_token, item_count: c.rows[0].n },
@@ -243,8 +253,8 @@ export async function handleBoardsRoute(request, url, path, client, env, deps) {
     const board = await ensureBoard(client, user.id);
     const items = await boardItemsWithListings(client, board.id);
     const ss = await client.query(
-      `SELECT id, search_name, criteria, frequency, created_at FROM saved_searches
-       WHERE email = $1 AND active = true ORDER BY created_at DESC`, [user.email]);
+      fresh(`SELECT id, search_name, criteria, frequency, created_at FROM saved_searches
+       WHERE email = $1 AND active = true ORDER BY created_at DESC`), [user.email]);
     return jsonResponse({
       user: { id: user.id, email: user.email, name: user.name },
       board: { id: board.id, name: board.name, share_token: board.share_token },
