@@ -146,14 +146,17 @@ function safeReturnUrl(raw) {
 }
 
 async function ensureBoard(client, userId) {
-  let r = await client.query(
-    "SELECT id, name, share_token FROM boards WHERE user_id = $1 ORDER BY id LIMIT 1", [userId]);
-  if (r.rows.length) return r.rows[0];
+  // Atomic upsert — same Hyperdrive lesson as getSessionSecret: a SELECT here
+  // can serve a ~60s-stale cached "no board" result right after creation,
+  // which minted duplicate boards per user (caught in Life Boards UI E2E,
+  // 2026-07-09). Writes bypass the cache; UNIQUE(user_id) enforces one board.
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
   const shareToken = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
-  r = await client.query(
-    "INSERT INTO boards (user_id, share_token) VALUES ($1, $2) RETURNING id, name, share_token",
+  const r = await client.query(
+    `INSERT INTO boards (user_id, share_token) VALUES ($1, $2)
+     ON CONFLICT (user_id) DO UPDATE SET user_id = boards.user_id
+     RETURNING id, name, share_token`,
     [userId, shareToken]);
   return r.rows[0];
 }
