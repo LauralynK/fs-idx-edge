@@ -26,6 +26,13 @@ binding = "TELEGRAM_BOT_TOKEN"
 store_id = "0f8750685fed4c7a8f5c9c2e67ee3861"
 secret_name = "TELEGRAM_BOT_TOKEN"
 
+# FSRE Concierge (P1 private pilot) — OpenRouter key with its own $ cap,
+# isolated from the shared Anthropic account (Laurie, 2026-07-13)
+[[secrets_store_secrets]]
+binding = "OPENROUTER_API_KEY"
+store_id = "0f8750685fed4c7a8f5c9c2e67ee3861"
+secret_name = "OPENROUTER_API_KEY"
+
 [[rules]]
 type = "Text"
 globs = ["**/*.html"]

@@ -8,6 +8,7 @@
 
 import SEARCH_HTML from "./search.html";
 import { handleBoardsRoute, isBoardsPath, boardsCors } from "./boards.js";
+import { handleConciergeRoute, isConciergePath } from "./concierge.js";
 import pg from 'pg';
 const { Client } = pg;
 
@@ -77,7 +78,7 @@ const AREAS = {
 // Secrets may arrive as classic per-worker secrets (plain string) or as
 // account Secrets Store bindings (object with .get()). Normalize to strings.
 async function resolveSecrets(env) {
-  for (const k of ["MAILGUN_API_KEY", "TELEGRAM_BOT_TOKEN"]) {
+  for (const k of ["MAILGUN_API_KEY", "TELEGRAM_BOT_TOKEN", "OPENROUTER_API_KEY"]) {
     if (env[k] && typeof env[k].get === "function") {
       try { env[k] = await env[k].get(); } catch (e) { console.error(`secret ${k}: ${e.message}`); env[k] = null; }
     }
@@ -141,6 +142,13 @@ export default {
         if (boardsResp) return boardsResp;
       }
 
+      // ── FSRE Concierge (P1 private pilot, key-gated — 2026-07-13) ──
+      if (isConciergePath(path)) {
+        return await handleConciergeRoute(request, url, path, client, env, {
+          jsonResponse, buildListingFilters,
+        });
+      }
+
       if (request.method === "POST" && path === "/api/saved-searches") {
         return await handleSaveSearch(request, client, env, corsHeaders);
       }
@@ -181,11 +189,12 @@ export default {
       }
       if (path === "/api/health") {
         return jsonResponse({
-          status: "ok", edge: true, db: "neon", version: "2026-07-09-boards-noncev2",
+          status: "ok", edge: true, db: "neon", version: "2026-07-13-concierge-p1",
           // Presence booleans only — helps diagnose silent lead-form/alert failures
           secrets: {
             mailgun: !!env.MAILGUN_API_KEY,
             telegram: !!env.TELEGRAM_BOT_TOKEN,
+            openrouter: !!env.OPENROUTER_API_KEY,
           },
         }, corsHeaders);
       }
