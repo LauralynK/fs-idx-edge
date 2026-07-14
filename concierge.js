@@ -262,6 +262,10 @@ const TOOLS = [
           waterfront: { type: "boolean", description: "True = waterfront only" },
           pool: { type: "boolean", description: "True = private pool only" },
           property_type: { type: "string", enum: ["Residential", "Land", "Residential Income", "Commercial Sale"] },
+          property_subtype: {
+            type: "string",
+            description: "Comma-separated home styles to INCLUDE (Residential only). Valid: Single Family Residence, Condominium, Townhouse, Villa, Half Duplex, Mobile Home, Manufactured Home, Farm. Example: visitor wants houses only (no condos) => 'Single Family Residence'. Use whenever the visitor specifies or excludes home styles.",
+          },
           no_hoa: { type: "boolean" },
           sort: { type: "string", enum: ["newest", "price_asc", "price_desc"], description: "Default newest" },
           limit: { type: "number", description: "Max results, 1-10, default 6" },
@@ -341,6 +345,7 @@ async function toolSearch(args, client, helpers) {
   if (args.pool === true) q.set("pool", "1");
   if (args.no_hoa === true) q.set("no_hoa", "1");
   if (args.property_type) q.set("property_type", String(args.property_type));
+  if (args.property_subtype) q.set("property_subtype", String(args.property_subtype));
 
   const { where, params } = buildListingFilters(q);
   const whereSql = "WHERE " + where.join(" AND ");
@@ -406,7 +411,7 @@ async function toolDetail(args, client) {
             subdivisionname, propertysubtype, publicremarks, taxannualamount,
             associationyn, associationfee, associationfeefrequency,
             seniorcommunityyn, newconstructionyn, furnished, virtualtoururlunbranded,
-            listagentfullname, listofficename, photoscount,
+            photoscount,
             GREATEST(0, current_date - listingcontractdate::date)::int AS dom
      FROM listings
      WHERE mlgcanview = true AND (listingkey = $1 OR listingid = $1)
@@ -440,7 +445,6 @@ async function toolDetail(args, client) {
     new_construction: l.newconstructionyn === true,
     furnished: l.furnished,
     virtual_tour: l.virtualtoururlunbranded || undefined,
-    listed_by: `${l.listagentfullname || ""}, ${l.listofficename || ""}`.replace(/^, |, $/g, ""),
     photos_count: l.photoscount,
     days_on_market: l.dom,
     link: `https://www.foursailsrealestate.com/mls/${l.listingid}`,
@@ -462,7 +466,7 @@ async function toolHandoff(args, client, convId) {
   );
   return {
     status: "handoff_logged",
-    note: "Tell the visitor Laurie or Christian will follow up shortly. (Pilot mode: request logged for review, not yet routed live.)",
+    note: "Tell the visitor Laurie & Christian will follow up shortly. (Pilot mode: request logged for review, not yet routed live.)",
   };
 }
 
@@ -481,11 +485,21 @@ CURRENTLY IN PRIVATE PILOT — your users right now are Laurie and Christian tes
 - Share objective area knowledge: geography, property types, waterfront types (Gulf-front vs. bay vs. canal), what's on the market.
 - Geography facts: Manasota Key is an 11-mile barrier island (Sarasota + Charlotte counties) separated from the mainland by Lemon Bay. Englewood and Venice are mainland towns — Englewood is the mainland community adjacent to Manasota Key, not on the island. Wellen Park is a master-planned community in the Venice/North Port area.
 - Help visitors explore: suggest refining searches, mention nearby alternatives, invite them to save homes or set up listing alerts on the site.
+
+## Home styles — clarify early (important)
+- The MLS mixes single-family homes, condos, townhouses, villas, mobile homes, and even timeshares. Unfiltered results overwhelm people.
+- If the visitor hasn't said what style they want, ask early — one friendly question: single-family homes, condos/townhomes, or open to anything? Then filter with property_subtype on every search.
+- "House" or "home" usually means Single Family Residence — set property_subtype accordingly rather than searching everything.
+- The "waterfront" flag includes freshwater ponds and lakes. If the visitor wants saltwater / Gulf / bay / canal, confirm via get_listing_detail (waterfront_features) before presenting a listing as saltwater — or say plainly that you're verifying which ones are truly saltwater.
 - When totals matter, report total_matches, not just the shown sample.
 - Include the listing link when discussing a specific property.
 
+## Connecting visitors to humans
+- The ONLY humans you ever connect a visitor with are Laurie & Christian — they work together as a team, so the visitor gets both no matter what.
+- NEVER refer a visitor to a listing's own agent, office, or any outside agent — no "contact the listing agent," no agent or brokerage names as a contact path. Every showing, question, or next step routes through Laurie & Christian (request_human_handoff).
+
 ## Hard boundaries (licensed activity — route to humans)
-- NO advice on offer price, negotiation strategy, or contract terms. That is exactly what Laurie does — offer to connect them (request_human_handoff).
+- NO advice on offer price, negotiation strategy, or contract terms. That is exactly what Laurie & Christian do — offer to connect them (request_human_handoff).
 - NO home valuations or "what is my home worth" opinions — handoff.
 - Showing requests, listing appointments, or "talk to a person" — handoff.
 - You never make commitments on the agents' behalf (no confirmed appointment times — the agents confirm).

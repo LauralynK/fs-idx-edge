@@ -189,7 +189,7 @@ export default {
       }
       if (path === "/api/health") {
         return jsonResponse({
-          status: "ok", edge: true, db: "neon", version: "2026-07-13-concierge-p1",
+          status: "ok", edge: true, db: "neon", version: "2026-07-14-concierge-p1.1",
           // Presence booleans only — helps diagnose silent lead-form/alert failures
           secrets: {
             mailgun: !!env.MAILGUN_API_KEY,
