@@ -401,6 +401,8 @@ async function toolSearch(args, client, helpers) {
 async function toolDetail(args, client) {
   const raw = String(args.listing_key || "").replace(/[^A-Za-z0-9_-]/g, "");
   if (!raw) return { error: "listing_key required" };
+  // Visitors write MLS numbers without the MLS Grid prefix (N6144518 vs MFRN6144518)
+  const prefixed = /^MFR/i.test(raw) ? raw : `MFR${raw}`;
 
   const r = await client.query(
     `SELECT listingkey, listingid, standardstatus, listprice, closeprice, closedate,
@@ -414,9 +416,9 @@ async function toolDetail(args, client) {
             photoscount,
             GREATEST(0, current_date - listingcontractdate::date)::int AS dom
      FROM listings
-     WHERE mlgcanview = true AND (listingkey = $1 OR listingid = $1)
+     WHERE mlgcanview = true AND (listingkey = $1 OR listingid = $1 OR listingkey = $2 OR listingid = $2)
      LIMIT 1`,
-    [raw]
+    [raw, prefixed]
   );
   if (!r.rows.length) return { error: "listing not found" };
   const l = r.rows[0];
